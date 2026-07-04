@@ -38,7 +38,7 @@ export function useReminderNotifications() {
           if (Notification.permission === "granted") {
             new Notification("Sana Reminder", {
               body: `${r.title} — starts in ${r.alert_before_minutes} min`,
-              icon: "/favicon.ico",
+              icon: "/header-logo.png",
             });
           }
         }, delay),

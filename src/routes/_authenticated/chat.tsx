@@ -18,7 +18,7 @@ import { generateSetFromThread } from "@/lib/revision.functions";
 import { searchYouTubeChunks, type MatchedChunk } from "@/lib/youtube-processing.functions";
 import { searchClassroomChunks, type ClassroomMatch, type ClassroomSearchResult } from "@/lib/classroom-search.functions";
 import sanaHero from "@/assets/sana-hero.png";
-import avatarUrl from "@/assets/sana-avatar.png";
+import { useResolvedAvatar } from "@/hooks/use-resolved-avatar";
 import { AnimatePresence, motion } from "framer-motion";
 import {
   YouTubeConnectorSheet, YouTubeRichCard, YouTubeTimelineSheet, fmtDuration,
@@ -211,14 +211,17 @@ function Chat() {
       if (!u.user) return { personality: "friendly_coach" as const, displayName: null };
       const [{ data: prefs }, { data: prof }] = await Promise.all([
         supabase.from("onboarding_preferences").select("ai_personality").eq("user_id", u.user.id).maybeSingle(),
-        supabase.from("profiles").select("display_name").eq("user_id", u.user.id).maybeSingle(),
+        supabase.from("profiles").select("display_name, avatar_url").eq("user_id", u.user.id).maybeSingle(),
       ]);
       return {
         personality: (prefs?.ai_personality ?? "friendly_coach") as any,
         displayName: prof?.display_name ?? null,
+        avatarUrl: prof?.avatar_url ?? null,
       };
     },
   });
+
+  const resolvedAvatarUrl = useResolvedAvatar(profile?.avatarUrl ?? null);
 
   useEffect(() => {
     (async () => {
@@ -578,7 +581,7 @@ function Chat() {
             <span className="absolute right-1.5 top-1.5 grid h-4 min-w-4 place-items-center rounded-full bg-destructive px-1 text-[9px] font-bold text-destructive-foreground">3</span>
           </Link>
           <Link to="/profile" className="relative shrink-0">
-            <img src={avatarUrl} alt="Profile" className="h-11 w-11 rounded-full border-2 border-card object-cover shadow-card" />
+            <img src={resolvedAvatarUrl} alt="Profile" className="h-11 w-11 rounded-full border-2 border-card object-cover shadow-card" />
             <span className="absolute bottom-0 right-0 h-3 w-3 rounded-full border-2 border-card bg-success" />
           </Link>
         </div>
@@ -1030,7 +1033,7 @@ function ChatHistoryDrawer({ open, onClose, threads, activeId, onSelect, onNew }
               ))}
             </div>
             <div className="mt-3 flex items-center gap-3 border-t border-border pt-3">
-              <img src={avatarUrl} className="h-10 w-10 rounded-full object-cover" alt="me" />
+              <img src={resolvedAvatarUrl} className="h-10 w-10 rounded-full object-cover" alt="me" />
               <div className="min-w-0 flex-1">
                 <div className="truncate text-sm font-bold">You</div>
                 <div className="text-[11px] text-muted-foreground">🔥 12 Day Streak</div>

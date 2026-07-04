@@ -1,8 +1,10 @@
 import { Link } from "@tanstack/react-router";
 import { Menu, Bell, ArrowLeft } from "lucide-react";
 import type { ReactNode } from "react";
-import avatarUrl from "@/assets/sana-avatar.png";
 import { cn } from "@/lib/utils";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
+import { useResolvedAvatar } from "@/hooks/use-resolved-avatar";
 
 type Props = {
   title?: ReactNode;
@@ -14,6 +16,17 @@ type Props = {
 };
 
 export function TopBar({ title, subtitle, onMenu, back, right, className }: Props) {
+  const { data: profile } = useQuery({
+    queryKey: ["profile"],
+    queryFn: async () => {
+      const { data: u } = await supabase.auth.getUser();
+      if (!u.user) return null;
+      const { data } = await supabase.from("profiles").select("*").eq("user_id", u.user.id).maybeSingle();
+      return data;
+    }
+  });
+  const resolvedAvatarUrl = useResolvedAvatar(profile?.avatar_url ?? null);
+
   return (
     <header
       className={cn(
@@ -52,7 +65,7 @@ export function TopBar({ title, subtitle, onMenu, back, right, className }: Prop
         </Link>
         <Link to="/profile" className="relative shrink-0" aria-label="Profile">
           <img
-            src={avatarUrl}
+            src={resolvedAvatarUrl}
             alt="Profile"
             className="h-11 w-11 rounded-full border-2 border-card object-cover shadow-card"
           />

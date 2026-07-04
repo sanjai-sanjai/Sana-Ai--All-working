@@ -11,6 +11,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import fallbackAvatar from "@/assets/sana-avatar.png";
 import { validatePhone } from "@/lib/phone";
 import { toast } from "sonner";
+import { useResolvedAvatar } from "@/hooks/use-resolved-avatar";
 
 export const Route = createFileRoute("/_authenticated/profile")({
   ssr: false,
@@ -195,29 +196,6 @@ function ProfilePage() {
       <p className="mt-3 text-center text-[10px] text-muted-foreground">Mnemora v1.0 · Made with Sana</p>
     </div>
   );
-}
-
-function useResolvedAvatar(path: string | null) {
-  const [url, setUrl] = useState<string>(fallbackAvatar);
-  useEffect(() => {
-    let alive = true;
-    if (!path) {
-      setUrl(fallbackAvatar);
-      return;
-    }
-    if (/^https?:\/\//i.test(path)) {
-      setUrl(path);
-      return;
-    }
-    (async () => {
-      const { data } = await supabase.storage.from("user-uploads").createSignedUrl(path, 60 * 60);
-      if (alive && data?.signedUrl) setUrl(data.signedUrl);
-    })();
-    return () => {
-      alive = false;
-    };
-  }, [path]);
-  return url;
 }
 
 function AvatarUploader({
