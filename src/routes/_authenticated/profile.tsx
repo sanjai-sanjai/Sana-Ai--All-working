@@ -20,6 +20,7 @@ export const Route = createFileRoute("/_authenticated/profile")({
 
 type ProfileRow = {
   user_id: string;
+  username: string | null;
   display_name: string | null;
   phone_e164: string | null;
   gender: string | null;
@@ -32,6 +33,7 @@ type ProfileRow = {
 };
 
 const REQUIRED_FIELDS: { key: keyof ProfileRow; label: string; critical?: boolean }[] = [
+  { key: "username", label: "Username" },
   { key: "display_name", label: "Name" },
   { key: "phone_e164", label: "Phone", critical: true },
   { key: "gender", label: "Gender" },
@@ -52,7 +54,7 @@ function ProfilePage() {
       const { data: u } = await supabase.auth.getUser();
       if (!u.user) return null;
       const { data } = await supabase.from("profiles").select("*").eq("user_id", u.user.id).maybeSingle();
-      return data ? { ...(data as ProfileRow), email: u.user.email } : null;
+      return data ? { ...(data as unknown as ProfileRow), email: u.user.email } : null;
     },
   });
 
@@ -334,6 +336,10 @@ function PersonalDetailsCard({
   setEditing: (v: boolean) => void;
   onSaved: () => void;
 }) {
+  const [username, setUsername] = useState("");
+  const [usernameStatus, setUsernameStatus] = useState<"idle" | "checking" | "available" | "taken" | "invalid">("idle");
+  const [usernameError, setUsernameError] = useState("");
+
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
   const [gender, setGender] = useState("");
@@ -341,14 +347,71 @@ function PersonalDetailsCard({
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
+    setUsername(profile?.username ?? "");
     setName(profile?.display_name ?? "");
     setPhone(profile?.phone_e164 ?? "");
     setGender(profile?.gender ?? "");
     setLocation(profile?.location ?? "");
-  }, [profile]);
+  }, [profile, editing]);
+
+  useEffect(() => {
+    if (!editing) return;
+    
+    const val = username;
+    if (!val) {
+      setUsernameStatus("idle");
+      setUsernameError("");
+      return;
+    }
+
+    if (val === profile?.username) {
+      setUsernameStatus("available");
+      setUsernameError("");
+      return;
+    }
+
+    if (val.length < 4 || val.length > 20) {
+      setUsernameStatus("invalid");
+      setUsernameError("Must be 4-20 characters");
+      return;
+    }
+    
+    if (!/^[a-z0-9_.]+$/.test(val)) {
+      setUsernameStatus("invalid");
+      setUsernameError("Only a-z, 0-9, _, . allowed");
+      return;
+    }
+
+    setUsernameStatus("checking");
+    setUsernameError("");
+
+    const timeoutId = setTimeout(async () => {
+      try {
+        // @ts-ignore - check_username_available is not in generated types yet
+        const { data, error } = await supabase.rpc("check_username_available", { p_username: val });
+        if (error) throw error;
+        setUsernameStatus(data ? "available" : "taken");
+      } catch (err) {
+        console.error("Username check error:", err);
+        setUsernameStatus("idle");
+      }
+    }, 500);
+
+    return () => clearTimeout(timeoutId);
+  }, [username, editing, profile?.username]);
+
+  function handleUsernameChange(val: string) {
+    setUsername(val.toLowerCase().replace(/\s/g, ""));
+  }
 
   async function save() {
     if (!profile) return;
+    
+    if (usernameStatus !== "available" && username !== profile.username) {
+      toast.error("Please choose a valid and available username.");
+      return;
+    }
+    
     let phoneE164: string | null = null;
     if (phone.trim()) {
       const r = validatePhone(phone);
@@ -362,11 +425,12 @@ function PersonalDetailsCard({
     const { error } = await supabase
       .from("profiles")
       .update({
+        username: username.trim() || null,
         display_name: name.trim() || null,
         phone_e164: phoneE164,
         gender: gender || null,
         location: location.trim() || null,
-      })
+      } as any)
       .eq("user_id", profile.user_id);
     setSaving(false);
     if (error) {
@@ -379,6 +443,7 @@ function PersonalDetailsCard({
   }
 
   function cancel() {
+    setUsername(profile?.username ?? "");
     setName(profile?.display_name ?? "");
     setPhone(profile?.phone_e164 ?? "");
     setGender(profile?.gender ?? "");
@@ -398,6 +463,7 @@ function PersonalDetailsCard({
             <Pencil className="h-3 w-3" /> Edit
           </button>
         </div>
+        <DetailRow icon={User} label="Username" value={profile?.username ? `@${profile.username}` : "—"} missing={!profile?.username} tint="bg-pink/10 text-pink" />
         <DetailRow icon={User} label="Name" value={profile?.display_name ?? "—"} missing={!profile?.display_name} tint="bg-primary/10 text-primary" />
         <DetailRow icon={Mail} label="Email" value={profile?.email ?? "—"} tint="bg-blue/10 text-blue" />
         <DetailRow
@@ -427,6 +493,27 @@ function PersonalDetailsCard({
 
   return (
     <div className="space-y-3 rounded-2xl border border-border bg-card p-4 shadow-card">
+      <div className="grid grid-cols-[auto_minmax(0,1fr)] items-center gap-3">
+        <div className="grid h-10 w-10 place-items-center rounded-xl bg-pink/10 text-pink">
+          <User className="h-4 w-4" />
+        </div>
+        <div className="min-w-0">
+          <div className="text-[11px] font-bold uppercase tracking-wide text-muted-foreground">Username</div>
+          <input
+            type="text"
+            value={username}
+            onChange={(e) => handleUsernameChange(e.target.value)}
+            placeholder="unique_username"
+            className="mt-0.5 w-full rounded-lg border border-border bg-background px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
+          />
+          <div className="mt-1 flex items-center text-xs">
+            {usernameStatus === "checking" && <span className="text-muted-foreground">Checking...</span>}
+            {usernameStatus === "available" && <span className="text-success flex items-center gap-1"><Check className="h-3 w-3" /> Available</span>}
+            {usernameStatus === "taken" && <span className="text-destructive flex items-center gap-1"><X className="h-3 w-3" /> Taken</span>}
+            {usernameStatus === "invalid" && <span className="text-destructive">{usernameError}</span>}
+          </div>
+        </div>
+      </div>
       <EditField icon={User} label="Name" value={name} onChange={setName} placeholder="Your name" />
       <EditField
         icon={Phone}

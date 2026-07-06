@@ -1,9 +1,9 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { GradientButton } from "@/components/app/GradientButton";
 import sanaHero from "@/assets/sana-hero.png";
-import { Mail, Lock, Eye, EyeOff, User, Phone, MapPin, Users } from "lucide-react";
+import { Mail, Lock, Eye, EyeOff, User, Phone, MapPin, Users, Check, X } from "lucide-react";
 import { toast } from "sonner";
 import { validatePhone } from "@/lib/phone";
 
@@ -22,6 +22,54 @@ function Auth() {
   const [location, setLocation] = useState("");
   const [show, setShow] = useState(false);
   const [loading, setLoading] = useState(false);
+  
+  const [username, setUsername] = useState("");
+  const [usernameStatus, setUsernameStatus] = useState<"idle" | "checking" | "available" | "taken" | "invalid">("idle");
+  const [usernameError, setUsernameError] = useState("");
+
+  useEffect(() => {
+    if (mode !== "signup") return;
+    
+    const val = username;
+    if (!val) {
+      setUsernameStatus("idle");
+      setUsernameError("");
+      return;
+    }
+
+    if (val.length < 4 || val.length > 20) {
+      setUsernameStatus("invalid");
+      setUsernameError("Must be 4-20 characters");
+      return;
+    }
+    
+    if (!/^[a-z0-9_.]+$/.test(val)) {
+      setUsernameStatus("invalid");
+      setUsernameError("Only a-z, 0-9, _, . allowed");
+      return;
+    }
+
+    setUsernameStatus("checking");
+    setUsernameError("");
+
+    const timeoutId = setTimeout(async () => {
+      try {
+        // @ts-ignore - check_username_available is not in generated types yet
+        const { data, error } = await supabase.rpc("check_username_available", { p_username: val });
+        if (error) throw error;
+        setUsernameStatus(data ? "available" : "taken");
+      } catch (err) {
+        console.error("Username check error:", err);
+        setUsernameStatus("idle");
+      }
+    }, 500);
+
+    return () => clearTimeout(timeoutId);
+  }, [username, mode]);
+
+  function handleUsernameChange(val: string) {
+    setUsername(val.toLowerCase().replace(/\s/g, ""));
+  }
 
   async function persistProfileFields(userId: string) {
     const phoneCheck = validatePhone(phone);
@@ -50,6 +98,12 @@ function Auth() {
           return;
         }
 
+        if (usernameStatus !== "available") {
+          toast.error("Please choose a valid and available username.");
+          setLoading(false);
+          return;
+        }
+
         const { data, error } = await supabase.auth.signUp({
           email,
           password,
@@ -57,6 +111,7 @@ function Auth() {
             emailRedirectTo: `${window.location.origin}/onboarding`,
             data: {
               display_name: displayName || email.split("@")[0],
+              username,
               phone_e164: phoneCheck.e164,
               gender: gender || null,
               location: location.trim() || null,
@@ -138,14 +193,32 @@ function Auth() {
 
         <form onSubmit={submit} className="mt-6 space-y-4">
           {mode === "signup" && (
-            <Field
-              icon={<User className="h-5 w-5" />}
-              label="Name"
-              placeholder="Your name"
-              value={displayName}
-              onChange={setDisplayName}
-              type="text"
-            />
+            <>
+              <Field
+                icon={<User className="h-5 w-5" />}
+                label="Name"
+                placeholder="Your name"
+                value={displayName}
+                onChange={setDisplayName}
+                type="text"
+              />
+              <Field
+                icon={<User className="h-5 w-5" />}
+                label="Username"
+                placeholder="unique_username"
+                value={username}
+                onChange={handleUsernameChange}
+                type="text"
+                trailing={
+                  <div className="flex items-center text-xs">
+                    {usernameStatus === "checking" && <span className="text-muted-foreground">Checking...</span>}
+                    {usernameStatus === "available" && <span className="text-success flex items-center gap-1"><Check className="h-3 w-3" /> Available</span>}
+                    {usernameStatus === "taken" && <span className="text-destructive flex items-center gap-1"><X className="h-3 w-3" /> Taken</span>}
+                    {usernameStatus === "invalid" && <span className="text-destructive">{usernameError}</span>}
+                  </div>
+                }
+              />
+            </>
           )}
           <Field
             icon={<Mail className="h-5 w-5" />}
