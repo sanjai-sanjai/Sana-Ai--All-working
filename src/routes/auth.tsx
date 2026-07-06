@@ -197,18 +197,7 @@ function Auth() {
     }
   }
 
-  async function oauth(provider: "google" | "apple") {
-    try {
-      const { error } = await supabase.auth.signInWithOAuth({
-        provider,
-        options: { redirectTo: `${window.location.origin}/onboarding` },
-      });
-      if (error) throw error;
-    } catch (err) {
-      const msg = err instanceof Error ? err.message : "OAuth error";
-      toast.error(`${provider} sign-in failed: ${msg}. Enable ${provider} provider in your Supabase dashboard.`);
-    }
-  }
+
 
   return (
     <div className="min-h-svh bg-background">
@@ -363,19 +352,6 @@ function Auth() {
           </GradientButton>
         </form>
 
-        <div className="my-6 flex items-center gap-3 text-xs text-muted-foreground">
-          <div className="h-px flex-1 bg-border" />
-          or continue with
-          <div className="h-px flex-1 bg-border" />
-        </div>
-        <div className="grid grid-cols-2 gap-3">
-          <button type="button" onClick={() => oauth("google")} className="shadow-card flex h-12 items-center justify-center gap-2 rounded-2xl border border-border bg-card text-sm font-semibold">
-            <span className="grid h-5 w-5 place-items-center rounded-full bg-white text-[10px] font-black text-primary">G</span> Google
-          </button>
-          <button type="button" onClick={() => oauth("apple")} className="shadow-card flex h-12 items-center justify-center gap-2 rounded-2xl border border-border bg-card text-sm font-semibold">
-             Apple
-          </button>
-        </div>
 
         <p className="mb-8 mt-6 text-center text-sm">
           {mode === "signin" ? "Don't have an account? " : "Have an account? "}
