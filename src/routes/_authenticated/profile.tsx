@@ -12,6 +12,7 @@ import fallbackAvatar from "@/assets/sana-avatar.png";
 import { validatePhone } from "@/lib/phone";
 import { toast } from "sonner";
 import { useResolvedAvatar } from "@/hooks/use-resolved-avatar";
+import { CropModal } from "@/components/app/CropModal";
 
 export const Route = createFileRoute("/_authenticated/profile")({
   ssr: false,
@@ -211,8 +212,9 @@ function AvatarUploader({
 }) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
+  const [cropModalSrc, setCropModalSrc] = useState<string | null>(null);
 
-  async function onFile(e: React.ChangeEvent<HTMLInputElement>) {
+  function onFile(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     e.target.value = "";
     if (!file || !userId) return;
@@ -224,12 +226,17 @@ function AvatarUploader({
       toast.error("Please choose an image");
       return;
     }
+    setCropModalSrc(URL.createObjectURL(file));
+  }
+
+  async function handleCropSubmit(croppedFile: File) {
+    setCropModalSrc(null);
     setUploading(true);
-    const ext = file.name.split(".").pop()?.toLowerCase() || "jpg";
+    const ext = croppedFile.name.split(".").pop()?.toLowerCase() || "jpg";
     const path = `avatars/${userId}-${Date.now()}.${ext}`;
-    const { error: upErr } = await supabase.storage.from("user-uploads").upload(path, file, {
+    const { error: upErr } = await supabase.storage.from("user-uploads").upload(path, croppedFile, {
       upsert: true,
-      contentType: file.type,
+      contentType: croppedFile.type,
     });
     if (upErr) {
       setUploading(false);
@@ -247,24 +254,31 @@ function AvatarUploader({
   }
 
   return (
-    <div className="relative inline-block">
-      <img src={src} className="h-24 w-24 rounded-full border-4 border-card object-cover shadow-soft" alt="avatar" />
-      <button
-        type="button"
-        onClick={() => inputRef.current?.click()}
-        disabled={uploading || !userId}
-        className="absolute -bottom-1 -right-1 grid h-8 w-8 place-items-center rounded-full gradient-primary text-primary-foreground shadow-soft active:scale-95 disabled:opacity-60"
-        aria-label="Change photo"
-      >
-        <Camera className="h-4 w-4" />
-      </button>
-      <input ref={inputRef} type="file" accept="image/*" className="hidden" onChange={onFile} />
-      {uploading && (
-        <div className="absolute inset-0 grid place-items-center rounded-full bg-background/60 text-[10px] font-bold">
-          Uploading…
-        </div>
-      )}
-    </div>
+    <>
+      <div className="relative inline-block">
+        <img src={src} className="h-24 w-24 rounded-full border-4 border-card object-cover shadow-soft" alt="avatar" />
+        <button
+          type="button"
+          onClick={() => inputRef.current?.click()}
+          disabled={uploading || !userId}
+          className="absolute -bottom-1 -right-1 grid h-8 w-8 place-items-center rounded-full gradient-primary text-primary-foreground shadow-soft active:scale-95 disabled:opacity-60"
+          aria-label="Change photo"
+        >
+          <Camera className="h-4 w-4" />
+        </button>
+        <input ref={inputRef} type="file" accept="image/*" className="hidden" onChange={onFile} />
+        {uploading && (
+          <div className="absolute inset-0 grid place-items-center rounded-full bg-background/60 text-[10px] font-bold">
+            Uploading…
+          </div>
+        )}
+      </div>
+      <CropModal
+        imageSrc={cropModalSrc}
+        onClose={() => setCropModalSrc(null)}
+        onCropSubmit={handleCropSubmit}
+      />
+    </>
   );
 }
 

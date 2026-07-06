@@ -1,11 +1,12 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { GradientButton } from "@/components/app/GradientButton";
 import sanaHero from "@/assets/sana-hero.png";
 import { Mail, Lock, Eye, EyeOff, User, Phone, MapPin, Users, Check, X, Camera, Plus } from "lucide-react";
 import { toast } from "sonner";
-import { validatePhone } from "@/lib/phone";
+import { validatePhone, listCountries, guessCountry, type CountryCode } from "@/lib/phone";
+import { CropModal } from "@/components/app/CropModal";
 
 export const Route = createFileRoute("/auth")({
   component: Auth,
@@ -18,7 +19,12 @@ function Auth() {
   const [password, setPassword] = useState("");
   const [displayName, setDisplayName] = useState("");
   const [phone, setPhone] = useState("");
+  const [countryCode, setCountryCode] = useState<CountryCode>("US");
   const [gender, setGender] = useState<"male" | "female" | "other" | "prefer_not" | "">("");
+
+  useEffect(() => {
+    setCountryCode(guessCountry());
+  }, []);
   const [location, setLocation] = useState("");
   const [show, setShow] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -29,6 +35,7 @@ function Auth() {
 
   const [avatarFile, setAvatarFile] = useState<File | null>(null);
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
+  const [cropModalSrc, setCropModalSrc] = useState<string | null>(null);
 
   function handleAvatarSelect(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
@@ -41,8 +48,9 @@ function Auth() {
       toast.error("Please choose an image");
       return;
     }
-    setAvatarFile(file);
-    setAvatarPreview(URL.createObjectURL(file));
+    const url = URL.createObjectURL(file);
+    setCropModalSrc(url);
+    e.target.value = "";
   }
 
   useEffect(() => {
@@ -90,7 +98,7 @@ function Auth() {
   }
 
   async function persistProfileFields(userId: string) {
-    const phoneCheck = validatePhone(phone);
+    const phoneCheck = validatePhone(phone, countryCode);
     if (!phoneCheck.ok) return;
     await supabase
       .from("profiles")
@@ -109,7 +117,7 @@ function Auth() {
     try {
       if (mode === "signup") {
         // Require + validate phone up-front so AI Calls work end-to-end.
-        const phoneCheck = validatePhone(phone);
+        const phoneCheck = validatePhone(phone, countryCode);
         if (!phoneCheck.ok) {
           toast.error(phoneCheck.reason);
           setLoading(false);
@@ -306,10 +314,11 @@ function Auth() {
               <Field
                 icon={<Phone className="h-5 w-5" />}
                 label="Phone (for AI Calls)"
-                placeholder="+1 555 123 4567"
+                placeholder="555 123 4567"
                 value={phone}
                 onChange={setPhone}
                 type="tel"
+                leading={<CountrySelect value={countryCode} onChange={setCountryCode} />}
               />
               <div className="grid grid-cols-[auto_minmax(0,1fr)] items-center gap-3">
                 <div className="shadow-card grid h-14 w-14 place-items-center rounded-2xl border border-border bg-card text-primary">
@@ -375,12 +384,22 @@ function Auth() {
           </button>
         </p>
       </div>
+
+      <CropModal
+        imageSrc={cropModalSrc}
+        onClose={() => setCropModalSrc(null)}
+        onCropSubmit={(croppedFile) => {
+          setAvatarFile(croppedFile);
+          setAvatarPreview(URL.createObjectURL(croppedFile));
+          setCropModalSrc(null);
+        }}
+      />
     </div>
   );
 }
 
-function Field({ icon, label, placeholder, value, onChange, type, trailing, optional = false }: {
-  icon: React.ReactNode; label: string; placeholder: string; value: string; onChange: (v: string) => void; type: string; trailing?: React.ReactNode; optional?: boolean;
+function Field({ icon, label, placeholder, value, onChange, type, trailing, leading, optional = false }: {
+  icon: React.ReactNode; label: string; placeholder: string; value: string; onChange: (v: string) => void; type: string; trailing?: React.ReactNode; leading?: React.ReactNode; optional?: boolean;
 }) {
   return (
     <div className="grid grid-cols-[auto_minmax(0,1fr)] items-center gap-3">
@@ -392,6 +411,7 @@ function Field({ icon, label, placeholder, value, onChange, type, trailing, opti
           {label} {optional && <span className="font-normal text-muted-foreground">(optional)</span>}
         </div>
         <div className="mt-1 flex items-center gap-2">
+          {leading}
           <input
             className="min-w-0 flex-1 bg-transparent text-sm placeholder:text-muted-foreground focus:outline-none"
             placeholder={placeholder}
@@ -403,6 +423,82 @@ function Field({ icon, label, placeholder, value, onChange, type, trailing, opti
           {trailing}
         </div>
       </div>
+    </div>
+  );
+}
+
+function CountrySelect({ value, onChange }: { value: CountryCode; onChange: (v: CountryCode) => void }) {
+  const [open, setOpen] = useState(false);
+  const [search, setSearch] = useState("");
+  const ref = useRef<HTMLDivElement>(null);
+  const countries = useMemo(() => listCountries(), []);
+
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (ref.current && !ref.current.contains(event.target as Node)) {
+        setOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  const filtered = useMemo(() => {
+    const s = search.toLowerCase();
+    return countries.filter(c => c.name.toLowerCase().includes(s) || c.dial.includes(s) || c.code.toLowerCase().includes(s));
+  }, [search, countries]);
+
+  const selected = countries.find(c => c.code === value) || countries[0];
+
+  function getFlagUrl(countryCode: string) {
+    return `https://flagcdn.com/w20/${countryCode.toLowerCase()}.png`;
+  }
+
+  return (
+    <div className="relative mr-2 flex items-center border-r border-border/50 pr-2" ref={ref}>
+      <button
+        type="button"
+        className="flex items-center gap-1.5 text-sm font-semibold focus:outline-none hover:text-primary transition-colors"
+        onClick={() => { setOpen(!open); setSearch(""); }}
+      >
+        <img src={getFlagUrl(selected.code)} alt={selected.code} className="w-4 h-auto rounded-[2px] shadow-sm" />
+        <span>{selected.dial}</span>
+      </button>
+      
+      {open && (
+        <div className="absolute left-0 top-full z-50 mt-2 w-64 overflow-hidden rounded-2xl border border-border/80 bg-card/95 p-2 shadow-card backdrop-blur-xl animate-in fade-in slide-in-from-top-2 duration-200">
+          <input
+            type="text"
+            className="mb-2 w-full rounded-xl border border-border/50 bg-background/50 px-3 py-2 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/30"
+            placeholder="Search country or code..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            autoFocus
+          />
+          <div className="max-h-56 overflow-y-auto no-scrollbar space-y-0.5">
+            {filtered.map(c => (
+              <button
+                key={c.code}
+                type="button"
+                className="flex w-full items-center justify-between rounded-xl px-3 py-2 text-left text-sm hover:bg-primary/10 hover:text-primary transition-colors"
+                onClick={() => {
+                  onChange(c.code);
+                  setOpen(false);
+                }}
+              >
+                <div className="flex items-center gap-2.5">
+                  <img src={getFlagUrl(c.code)} alt={c.code} className="w-4 h-auto rounded-[2px] shadow-sm shrink-0" />
+                  <span className="truncate max-w-[130px] font-medium">{c.name}</span>
+                </div>
+                <span className="font-semibold text-muted-foreground">{c.dial}</span>
+              </button>
+            ))}
+            {filtered.length === 0 && (
+              <div className="p-3 text-center text-xs text-muted-foreground">No countries found</div>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
