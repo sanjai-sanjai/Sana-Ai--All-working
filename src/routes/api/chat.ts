@@ -56,7 +56,7 @@ ${classroomContext}
           const result = streamText({
             model,
             system,
-            messages: await convertToModelMessages(messages),
+            messages: messages.map((m: any) => ({ role: m.role, content: m.content || "" })),
             abortSignal: request.signal,
             experimental_transform: smoothStream({ delayInMs: 22, chunking: "word" }),
           });

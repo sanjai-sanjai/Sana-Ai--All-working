@@ -1,0 +1,1 @@
+import { createClient } from '@supabase/supabase-js'; const supabase = createClient('"https://coszjlgkycylwxxikljq.supabase.co"', ''); async function run() { const {data: g} = await supabase.from('study_groups').select('*'); console.log('Groups:', g); const {data: m} = await supabase.from('study_group_members').select('*'); console.log('Members:', m); } run();

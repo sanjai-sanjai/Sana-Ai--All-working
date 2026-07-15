@@ -14,8 +14,13 @@ import { Route as OnboardingRouteImport } from './routes/onboarding'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as ApiTeachReflectionRouteImport } from './routes/api/teach-reflection'
+import { Route as ApiTeachPrepRouteImport } from './routes/api/teach-prep'
+import { Route as ApiStudySessionRouteImport } from './routes/api/study-session'
+import { Route as ApiStudyCoachRouteImport } from './routes/api/study-coach'
+import { Route as ApiOrchestratorActionRouteImport } from './routes/api/orchestrator-action'
+import { Route as ApiGroupChatRouteImport } from './routes/api/group-chat'
 import { Route as ApiChatRouteImport } from './routes/api/chat'
-import { Route as AuthenticatedStudyTogetherRouteImport } from './routes/_authenticated/study-together'
 import { Route as AuthenticatedRevisionRouteImport } from './routes/_authenticated/revision'
 import { Route as AuthenticatedReminderRouteImport } from './routes/_authenticated/reminder'
 import { Route as AuthenticatedProfileRouteImport } from './routes/_authenticated/profile'
@@ -27,9 +32,12 @@ import { Route as AuthenticatedClassroomRouteImport } from './routes/_authentica
 import { Route as AuthenticatedChatRouteImport } from './routes/_authenticated/chat'
 import { Route as AuthenticatedAnalyticsRouteImport } from './routes/_authenticated/analytics'
 import { Route as AuthenticatedAiCallsRouteImport } from './routes/_authenticated/ai-calls'
+import { Route as AuthenticatedStudyTogetherIndexRouteImport } from './routes/_authenticated/study-together.index'
 import { Route as AuthenticatedRevisionIndexRouteImport } from './routes/_authenticated/revision.index'
 import { Route as AuthenticatedClassroomIndexRouteImport } from './routes/_authenticated/classroom.index'
 import { Route as AuthenticatedVoiceCallNewRouteImport } from './routes/_authenticated/voice-call.new'
+import { Route as AuthenticatedStudyTogetherCreateRouteImport } from './routes/_authenticated/study-together.create'
+import { Route as AuthenticatedStudyTogetherGroupIdRouteImport } from './routes/_authenticated/study-together.$groupId'
 import { Route as AuthenticatedRevisionSetIdRouteImport } from './routes/_authenticated/revision/$setId'
 import { Route as AuthenticatedClassroomSettingsRouteImport } from './routes/_authenticated/classroom.settings'
 import { Route as AuthenticatedClassroomAssignmentsRouteImport } from './routes/_authenticated/classroom.assignments'
@@ -74,17 +82,41 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiTeachReflectionRoute = ApiTeachReflectionRouteImport.update({
+  id: '/api/teach-reflection',
+  path: '/api/teach-reflection',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiTeachPrepRoute = ApiTeachPrepRouteImport.update({
+  id: '/api/teach-prep',
+  path: '/api/teach-prep',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiStudySessionRoute = ApiStudySessionRouteImport.update({
+  id: '/api/study-session',
+  path: '/api/study-session',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiStudyCoachRoute = ApiStudyCoachRouteImport.update({
+  id: '/api/study-coach',
+  path: '/api/study-coach',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiOrchestratorActionRoute = ApiOrchestratorActionRouteImport.update({
+  id: '/api/orchestrator-action',
+  path: '/api/orchestrator-action',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiGroupChatRoute = ApiGroupChatRouteImport.update({
+  id: '/api/group-chat',
+  path: '/api/group-chat',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiChatRoute = ApiChatRouteImport.update({
   id: '/api/chat',
   path: '/api/chat',
   getParentRoute: () => rootRouteImport,
 } as any)
-const AuthenticatedStudyTogetherRoute =
-  AuthenticatedStudyTogetherRouteImport.update({
-    id: '/study-together',
-    path: '/study-together',
-    getParentRoute: () => AuthenticatedRouteRoute,
-  } as any)
 const AuthenticatedRevisionRoute = AuthenticatedRevisionRouteImport.update({
   id: '/revision',
   path: '/revision',
@@ -141,6 +173,12 @@ const AuthenticatedAiCallsRoute = AuthenticatedAiCallsRouteImport.update({
   path: '/ai-calls',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedStudyTogetherIndexRoute =
+  AuthenticatedStudyTogetherIndexRouteImport.update({
+    id: '/study-together/',
+    path: '/study-together/',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedRevisionIndexRoute =
   AuthenticatedRevisionIndexRouteImport.update({
     id: '/',
@@ -157,6 +195,18 @@ const AuthenticatedVoiceCallNewRoute =
   AuthenticatedVoiceCallNewRouteImport.update({
     id: '/voice-call/new',
     path: '/voice-call/new',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedStudyTogetherCreateRoute =
+  AuthenticatedStudyTogetherCreateRouteImport.update({
+    id: '/study-together/create',
+    path: '/study-together/create',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedStudyTogetherGroupIdRoute =
+  AuthenticatedStudyTogetherGroupIdRouteImport.update({
+    id: '/study-together/$groupId',
+    path: '/study-together/$groupId',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
 const AuthenticatedRevisionSetIdRoute =
@@ -287,15 +337,23 @@ export interface FileRoutesByFullPath {
   '/profile': typeof AuthenticatedProfileRoute
   '/reminder': typeof AuthenticatedReminderRoute
   '/revision': typeof AuthenticatedRevisionRouteWithChildren
-  '/study-together': typeof AuthenticatedStudyTogetherRoute
   '/api/chat': typeof ApiChatRoute
+  '/api/group-chat': typeof ApiGroupChatRoute
+  '/api/orchestrator-action': typeof ApiOrchestratorActionRoute
+  '/api/study-coach': typeof ApiStudyCoachRoute
+  '/api/study-session': typeof ApiStudySessionRoute
+  '/api/teach-prep': typeof ApiTeachPrepRoute
+  '/api/teach-reflection': typeof ApiTeachReflectionRoute
   '/classroom/announcements': typeof AuthenticatedClassroomAnnouncementsRoute
   '/classroom/assignments': typeof AuthenticatedClassroomAssignmentsRoute
   '/classroom/settings': typeof AuthenticatedClassroomSettingsRoute
   '/revision/$setId': typeof AuthenticatedRevisionSetIdRouteWithChildren
+  '/study-together/$groupId': typeof AuthenticatedStudyTogetherGroupIdRoute
+  '/study-together/create': typeof AuthenticatedStudyTogetherCreateRoute
   '/voice-call/new': typeof AuthenticatedVoiceCallNewRoute
   '/classroom/': typeof AuthenticatedClassroomIndexRoute
   '/revision/': typeof AuthenticatedRevisionIndexRoute
+  '/study-together/': typeof AuthenticatedStudyTogetherIndexRoute
   '/revision/$setId/ask': typeof AuthenticatedRevisionSetIdAskRoute
   '/revision/$setId/flashcards': typeof AuthenticatedRevisionSetIdFlashcardsRoute
   '/revision/$setId/known': typeof AuthenticatedRevisionSetIdKnownRoute
@@ -326,15 +384,23 @@ export interface FileRoutesByTo {
   '/power-nap': typeof AuthenticatedPowerNapRoute
   '/profile': typeof AuthenticatedProfileRoute
   '/reminder': typeof AuthenticatedReminderRoute
-  '/study-together': typeof AuthenticatedStudyTogetherRoute
   '/api/chat': typeof ApiChatRoute
+  '/api/group-chat': typeof ApiGroupChatRoute
+  '/api/orchestrator-action': typeof ApiOrchestratorActionRoute
+  '/api/study-coach': typeof ApiStudyCoachRoute
+  '/api/study-session': typeof ApiStudySessionRoute
+  '/api/teach-prep': typeof ApiTeachPrepRoute
+  '/api/teach-reflection': typeof ApiTeachReflectionRoute
   '/classroom/announcements': typeof AuthenticatedClassroomAnnouncementsRoute
   '/classroom/assignments': typeof AuthenticatedClassroomAssignmentsRoute
   '/classroom/settings': typeof AuthenticatedClassroomSettingsRoute
   '/revision/$setId': typeof AuthenticatedRevisionSetIdRouteWithChildren
+  '/study-together/$groupId': typeof AuthenticatedStudyTogetherGroupIdRoute
+  '/study-together/create': typeof AuthenticatedStudyTogetherCreateRoute
   '/voice-call/new': typeof AuthenticatedVoiceCallNewRoute
   '/classroom': typeof AuthenticatedClassroomIndexRoute
   '/revision': typeof AuthenticatedRevisionIndexRoute
+  '/study-together': typeof AuthenticatedStudyTogetherIndexRoute
   '/revision/$setId/ask': typeof AuthenticatedRevisionSetIdAskRoute
   '/revision/$setId/flashcards': typeof AuthenticatedRevisionSetIdFlashcardsRoute
   '/revision/$setId/known': typeof AuthenticatedRevisionSetIdKnownRoute
@@ -369,15 +435,23 @@ export interface FileRoutesById {
   '/_authenticated/profile': typeof AuthenticatedProfileRoute
   '/_authenticated/reminder': typeof AuthenticatedReminderRoute
   '/_authenticated/revision': typeof AuthenticatedRevisionRouteWithChildren
-  '/_authenticated/study-together': typeof AuthenticatedStudyTogetherRoute
   '/api/chat': typeof ApiChatRoute
+  '/api/group-chat': typeof ApiGroupChatRoute
+  '/api/orchestrator-action': typeof ApiOrchestratorActionRoute
+  '/api/study-coach': typeof ApiStudyCoachRoute
+  '/api/study-session': typeof ApiStudySessionRoute
+  '/api/teach-prep': typeof ApiTeachPrepRoute
+  '/api/teach-reflection': typeof ApiTeachReflectionRoute
   '/_authenticated/classroom/announcements': typeof AuthenticatedClassroomAnnouncementsRoute
   '/_authenticated/classroom/assignments': typeof AuthenticatedClassroomAssignmentsRoute
   '/_authenticated/classroom/settings': typeof AuthenticatedClassroomSettingsRoute
   '/_authenticated/revision/$setId': typeof AuthenticatedRevisionSetIdRouteWithChildren
+  '/_authenticated/study-together/$groupId': typeof AuthenticatedStudyTogetherGroupIdRoute
+  '/_authenticated/study-together/create': typeof AuthenticatedStudyTogetherCreateRoute
   '/_authenticated/voice-call/new': typeof AuthenticatedVoiceCallNewRoute
   '/_authenticated/classroom/': typeof AuthenticatedClassroomIndexRoute
   '/_authenticated/revision/': typeof AuthenticatedRevisionIndexRoute
+  '/_authenticated/study-together/': typeof AuthenticatedStudyTogetherIndexRoute
   '/_authenticated/revision/$setId/ask': typeof AuthenticatedRevisionSetIdAskRoute
   '/_authenticated/revision/$setId/flashcards': typeof AuthenticatedRevisionSetIdFlashcardsRoute
   '/_authenticated/revision/$setId/known': typeof AuthenticatedRevisionSetIdKnownRoute
@@ -412,15 +486,23 @@ export interface FileRouteTypes {
     | '/profile'
     | '/reminder'
     | '/revision'
-    | '/study-together'
     | '/api/chat'
+    | '/api/group-chat'
+    | '/api/orchestrator-action'
+    | '/api/study-coach'
+    | '/api/study-session'
+    | '/api/teach-prep'
+    | '/api/teach-reflection'
     | '/classroom/announcements'
     | '/classroom/assignments'
     | '/classroom/settings'
     | '/revision/$setId'
+    | '/study-together/$groupId'
+    | '/study-together/create'
     | '/voice-call/new'
     | '/classroom/'
     | '/revision/'
+    | '/study-together/'
     | '/revision/$setId/ask'
     | '/revision/$setId/flashcards'
     | '/revision/$setId/known'
@@ -451,15 +533,23 @@ export interface FileRouteTypes {
     | '/power-nap'
     | '/profile'
     | '/reminder'
-    | '/study-together'
     | '/api/chat'
+    | '/api/group-chat'
+    | '/api/orchestrator-action'
+    | '/api/study-coach'
+    | '/api/study-session'
+    | '/api/teach-prep'
+    | '/api/teach-reflection'
     | '/classroom/announcements'
     | '/classroom/assignments'
     | '/classroom/settings'
     | '/revision/$setId'
+    | '/study-together/$groupId'
+    | '/study-together/create'
     | '/voice-call/new'
     | '/classroom'
     | '/revision'
+    | '/study-together'
     | '/revision/$setId/ask'
     | '/revision/$setId/flashcards'
     | '/revision/$setId/known'
@@ -493,15 +583,23 @@ export interface FileRouteTypes {
     | '/_authenticated/profile'
     | '/_authenticated/reminder'
     | '/_authenticated/revision'
-    | '/_authenticated/study-together'
     | '/api/chat'
+    | '/api/group-chat'
+    | '/api/orchestrator-action'
+    | '/api/study-coach'
+    | '/api/study-session'
+    | '/api/teach-prep'
+    | '/api/teach-reflection'
     | '/_authenticated/classroom/announcements'
     | '/_authenticated/classroom/assignments'
     | '/_authenticated/classroom/settings'
     | '/_authenticated/revision/$setId'
+    | '/_authenticated/study-together/$groupId'
+    | '/_authenticated/study-together/create'
     | '/_authenticated/voice-call/new'
     | '/_authenticated/classroom/'
     | '/_authenticated/revision/'
+    | '/_authenticated/study-together/'
     | '/_authenticated/revision/$setId/ask'
     | '/_authenticated/revision/$setId/flashcards'
     | '/_authenticated/revision/$setId/known'
@@ -526,6 +624,12 @@ export interface RootRouteChildren {
   OnboardingRoute: typeof OnboardingRoute
   WelcomeRoute: typeof WelcomeRoute
   ApiChatRoute: typeof ApiChatRoute
+  ApiGroupChatRoute: typeof ApiGroupChatRoute
+  ApiOrchestratorActionRoute: typeof ApiOrchestratorActionRoute
+  ApiStudyCoachRoute: typeof ApiStudyCoachRoute
+  ApiStudySessionRoute: typeof ApiStudySessionRoute
+  ApiTeachPrepRoute: typeof ApiTeachPrepRoute
+  ApiTeachReflectionRoute: typeof ApiTeachReflectionRoute
   ApiPublicClassroomCallbackRoute: typeof ApiPublicClassroomCallbackRoute
   ApiPublicHooksClassroomSyncRoute: typeof ApiPublicHooksClassroomSyncRoute
   ApiPublicHooksVoiceDispatcherRoute: typeof ApiPublicHooksVoiceDispatcherRoute
@@ -572,19 +676,54 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/teach-reflection': {
+      id: '/api/teach-reflection'
+      path: '/api/teach-reflection'
+      fullPath: '/api/teach-reflection'
+      preLoaderRoute: typeof ApiTeachReflectionRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/teach-prep': {
+      id: '/api/teach-prep'
+      path: '/api/teach-prep'
+      fullPath: '/api/teach-prep'
+      preLoaderRoute: typeof ApiTeachPrepRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/study-session': {
+      id: '/api/study-session'
+      path: '/api/study-session'
+      fullPath: '/api/study-session'
+      preLoaderRoute: typeof ApiStudySessionRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/study-coach': {
+      id: '/api/study-coach'
+      path: '/api/study-coach'
+      fullPath: '/api/study-coach'
+      preLoaderRoute: typeof ApiStudyCoachRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/orchestrator-action': {
+      id: '/api/orchestrator-action'
+      path: '/api/orchestrator-action'
+      fullPath: '/api/orchestrator-action'
+      preLoaderRoute: typeof ApiOrchestratorActionRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/group-chat': {
+      id: '/api/group-chat'
+      path: '/api/group-chat'
+      fullPath: '/api/group-chat'
+      preLoaderRoute: typeof ApiGroupChatRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/chat': {
       id: '/api/chat'
       path: '/api/chat'
       fullPath: '/api/chat'
       preLoaderRoute: typeof ApiChatRouteImport
       parentRoute: typeof rootRouteImport
-    }
-    '/_authenticated/study-together': {
-      id: '/_authenticated/study-together'
-      path: '/study-together'
-      fullPath: '/study-together'
-      preLoaderRoute: typeof AuthenticatedStudyTogetherRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/revision': {
       id: '/_authenticated/revision'
@@ -663,6 +802,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAiCallsRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/study-together/': {
+      id: '/_authenticated/study-together/'
+      path: '/study-together'
+      fullPath: '/study-together/'
+      preLoaderRoute: typeof AuthenticatedStudyTogetherIndexRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/revision/': {
       id: '/_authenticated/revision/'
       path: '/'
@@ -682,6 +828,20 @@ declare module '@tanstack/react-router' {
       path: '/voice-call/new'
       fullPath: '/voice-call/new'
       preLoaderRoute: typeof AuthenticatedVoiceCallNewRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/study-together/create': {
+      id: '/_authenticated/study-together/create'
+      path: '/study-together/create'
+      fullPath: '/study-together/create'
+      preLoaderRoute: typeof AuthenticatedStudyTogetherCreateRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/study-together/$groupId': {
+      id: '/_authenticated/study-together/$groupId'
+      path: '/study-together/$groupId'
+      fullPath: '/study-together/$groupId'
+      preLoaderRoute: typeof AuthenticatedStudyTogetherGroupIdRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/revision/$setId': {
@@ -915,8 +1075,10 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedProfileRoute: typeof AuthenticatedProfileRoute
   AuthenticatedReminderRoute: typeof AuthenticatedReminderRoute
   AuthenticatedRevisionRoute: typeof AuthenticatedRevisionRouteWithChildren
-  AuthenticatedStudyTogetherRoute: typeof AuthenticatedStudyTogetherRoute
+  AuthenticatedStudyTogetherGroupIdRoute: typeof AuthenticatedStudyTogetherGroupIdRoute
+  AuthenticatedStudyTogetherCreateRoute: typeof AuthenticatedStudyTogetherCreateRoute
   AuthenticatedVoiceCallNewRoute: typeof AuthenticatedVoiceCallNewRoute
+  AuthenticatedStudyTogetherIndexRoute: typeof AuthenticatedStudyTogetherIndexRoute
 }
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
@@ -931,8 +1093,11 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedProfileRoute: AuthenticatedProfileRoute,
   AuthenticatedReminderRoute: AuthenticatedReminderRoute,
   AuthenticatedRevisionRoute: AuthenticatedRevisionRouteWithChildren,
-  AuthenticatedStudyTogetherRoute: AuthenticatedStudyTogetherRoute,
+  AuthenticatedStudyTogetherGroupIdRoute:
+    AuthenticatedStudyTogetherGroupIdRoute,
+  AuthenticatedStudyTogetherCreateRoute: AuthenticatedStudyTogetherCreateRoute,
   AuthenticatedVoiceCallNewRoute: AuthenticatedVoiceCallNewRoute,
+  AuthenticatedStudyTogetherIndexRoute: AuthenticatedStudyTogetherIndexRoute,
 }
 
 const AuthenticatedRouteRouteWithChildren =
@@ -945,6 +1110,12 @@ const rootRouteChildren: RootRouteChildren = {
   OnboardingRoute: OnboardingRoute,
   WelcomeRoute: WelcomeRoute,
   ApiChatRoute: ApiChatRoute,
+  ApiGroupChatRoute: ApiGroupChatRoute,
+  ApiOrchestratorActionRoute: ApiOrchestratorActionRoute,
+  ApiStudyCoachRoute: ApiStudyCoachRoute,
+  ApiStudySessionRoute: ApiStudySessionRoute,
+  ApiTeachPrepRoute: ApiTeachPrepRoute,
+  ApiTeachReflectionRoute: ApiTeachReflectionRoute,
   ApiPublicClassroomCallbackRoute: ApiPublicClassroomCallbackRoute,
   ApiPublicHooksClassroomSyncRoute: ApiPublicHooksClassroomSyncRoute,
   ApiPublicHooksVoiceDispatcherRoute: ApiPublicHooksVoiceDispatcherRoute,

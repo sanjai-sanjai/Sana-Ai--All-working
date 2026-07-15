@@ -243,7 +243,7 @@ function AvatarUploader({
       toast.error(upErr.message);
       return;
     }
-    const { error: dbErr } = await supabase.from("profiles").update({ avatar_url: path }).eq("user_id", userId);
+    const { error: dbErr } = await supabase.from("profiles").update({ avatar_url: path }).eq("user_id", userId!);
     setUploading(false);
     if (dbErr) {
       toast.error(dbErr.message);

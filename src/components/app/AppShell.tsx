@@ -1,3 +1,4 @@
+import { useLocation } from "@tanstack/react-router";
 import type { ReactNode } from "react";
 import { BottomTabBar } from "./BottomTabBar";
 
@@ -8,6 +9,9 @@ import { BottomTabBar } from "./BottomTabBar";
  * lavender backdrop — preserves the native mobile design language.
  */
 export function AppShell({ children }: { children: ReactNode }) {
+  const loc = useLocation();
+  const hideBottomNav = loc.pathname.includes("/study-together/create");
+
   return (
     <div className="min-h-[100dvh] w-full bg-gradient-to-br from-lavender/60 via-background to-background md:from-lavender md:via-background md:to-lavender/60">
       {/*
@@ -32,7 +36,7 @@ export function AppShell({ children }: { children: ReactNode }) {
         ].join(" ")}
       >
         <main className="no-scrollbar flex-1 overflow-y-auto pb-2">{children}</main>
-        <BottomTabBar />
+        {!hideBottomNav && <BottomTabBar />}
       </div>
     </div>
   );
