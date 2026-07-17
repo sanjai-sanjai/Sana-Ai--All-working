@@ -1,5 +1,5 @@
 import { useState, useRef } from "react";
-import { Settings, X, LogOut, Trash2, Edit3, UserPlus, Image as ImageIcon, Check, Search as SearchIcon } from "lucide-react";
+import { Settings, X, LogOut, Trash2, Edit3, UserPlus, Image as ImageIcon, Check, Search as SearchIcon, Copy } from "lucide-react";
 import { useUpdateGroupMutation, StudyGroup, useSaveGroupMemberProfile, useGroupMemberProfile, useRemoveMemberMutation, useDeleteGroupMutation } from "@/hooks/use-study-groups";
 import { useAuth } from "@/hooks/use-auth";
 import { InviteMemberModal } from "./InviteMemberModal";
@@ -31,6 +31,7 @@ export function GroupSettingsPanel({ group, members, onClose }: GroupSettingsPan
   const [showInviteModal, setShowInviteModal] = useState(false);
   const [showProfileEditor, setShowProfileEditor] = useState(false);
   const [uploadingImage, setUploadingImage] = useState(false);
+  const [copiedCode, setCopiedCode] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const isOwner = members.find(m => m.user_id === user?.id)?.role === "owner";
@@ -61,6 +62,14 @@ export function GroupSettingsPanel({ group, members, onClose }: GroupSettingsPan
     } catch (err: any) {
       toast.error("Failed to update profile: " + err.message);
     }
+  };
+
+  const handleCopyCode = () => {
+    if (!group.invite_code) return;
+    navigator.clipboard.writeText(group.invite_code);
+    setCopiedCode(true);
+    toast.success("Invite code copied to clipboard!");
+    setTimeout(() => setCopiedCode(false), 2000);
   };
 
   const handleImageUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -193,11 +202,26 @@ export function GroupSettingsPanel({ group, members, onClose }: GroupSettingsPan
               </button>
             </div>
           ) : (
-            <div className="text-center">
+            <div className="text-center w-full max-w-sm">
               <h1 className="text-[24px] font-bold">{group.name}</h1>
               <p className="text-[14px] text-muted-foreground mt-1">{group.subject || "No subject"}</p>
+              
+              {group.invite_code && (
+                <div className="mt-4 flex flex-col items-center justify-center p-4 bg-muted/30 rounded-2xl border border-border/50">
+                  <p className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground mb-1.5">Group Invite Code</p>
+                  <div 
+                    onClick={handleCopyCode}
+                    className="flex items-center gap-3 bg-white border border-border/60 rounded-xl px-4 py-2 cursor-pointer hover:bg-gray-50 active:scale-[0.98] transition-all shadow-sm group"
+                  >
+                    <span className="text-[18px] font-black tracking-[0.2em] text-primary">{group.invite_code}</span>
+                    <div className="h-6 w-[1px] bg-border/60"></div>
+                    {copiedCode ? <Check className="h-4 w-4 text-green-500" /> : <Copy className="h-4 w-4 text-gray-400 group-hover:text-primary transition-colors" />}
+                  </div>
+                </div>
+              )}
+
               {isOwner && (
-                <button onClick={() => setIsEditing(true)} className="mt-3 flex items-center gap-1.5 mx-auto rounded-full bg-muted px-4 py-1.5 text-[13px] font-bold hover:bg-gray-200 transition-colors">
+                <button onClick={() => setIsEditing(true)} className="mt-4 flex items-center gap-1.5 mx-auto rounded-full bg-muted px-4 py-1.5 text-[13px] font-bold hover:bg-gray-200 transition-colors">
                   <Edit3 className="h-3.5 w-3.5" /> Edit Info
                 </button>
               )}

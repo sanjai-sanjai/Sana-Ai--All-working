@@ -53,6 +53,7 @@ import { Route as ApiPublicStudyNotesStreamRouteImport } from './routes/api/publ
 import { Route as ApiPublicHooksVoiceDispatcherRouteImport } from './routes/api/public/hooks/voice-dispatcher'
 import { Route as ApiPublicHooksClassroomSyncRouteImport } from './routes/api/public/hooks/classroom-sync'
 import { Route as ApiPublicClassroomCallbackRouteImport } from './routes/api/public/classroom/callback'
+import { Route as AuthenticatedStudyTogetherGroupIdTeamRouteImport } from './routes/_authenticated/study-together.$groupId_.team'
 import { Route as AuthenticatedRevisionSetIdSummaryRouteImport } from './routes/_authenticated/revision/$setId.summary'
 import { Route as AuthenticatedRevisionSetIdSessionRouteImport } from './routes/_authenticated/revision/$setId.session'
 import { Route as AuthenticatedRevisionSetIdNotesRouteImport } from './routes/_authenticated/revision/$setId.notes'
@@ -296,6 +297,12 @@ const ApiPublicClassroomCallbackRoute =
     path: '/api/public/classroom/callback',
     getParentRoute: () => rootRouteImport,
   } as any)
+const AuthenticatedStudyTogetherGroupIdTeamRoute =
+  AuthenticatedStudyTogetherGroupIdTeamRouteImport.update({
+    id: '/study-together/$groupId_/team',
+    path: '/study-together/$groupId/team',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedRevisionSetIdSummaryRoute =
   AuthenticatedRevisionSetIdSummaryRouteImport.update({
     id: '/summary',
@@ -388,6 +395,7 @@ export interface FileRoutesByFullPath {
   '/revision/$setId/notes': typeof AuthenticatedRevisionSetIdNotesRouteWithChildren
   '/revision/$setId/session': typeof AuthenticatedRevisionSetIdSessionRoute
   '/revision/$setId/summary': typeof AuthenticatedRevisionSetIdSummaryRoute
+  '/study-together/$groupId/team': typeof AuthenticatedStudyTogetherGroupIdTeamRoute
   '/api/public/classroom/callback': typeof ApiPublicClassroomCallbackRoute
   '/api/public/hooks/classroom-sync': typeof ApiPublicHooksClassroomSyncRoute
   '/api/public/hooks/voice-dispatcher': typeof ApiPublicHooksVoiceDispatcherRoute
@@ -439,6 +447,7 @@ export interface FileRoutesByTo {
   '/revision/$setId/notes': typeof AuthenticatedRevisionSetIdNotesRouteWithChildren
   '/revision/$setId/session': typeof AuthenticatedRevisionSetIdSessionRoute
   '/revision/$setId/summary': typeof AuthenticatedRevisionSetIdSummaryRoute
+  '/study-together/$groupId/team': typeof AuthenticatedStudyTogetherGroupIdTeamRoute
   '/api/public/classroom/callback': typeof ApiPublicClassroomCallbackRoute
   '/api/public/hooks/classroom-sync': typeof ApiPublicHooksClassroomSyncRoute
   '/api/public/hooks/voice-dispatcher': typeof ApiPublicHooksVoiceDispatcherRoute
@@ -494,6 +503,7 @@ export interface FileRoutesById {
   '/_authenticated/revision/$setId/notes': typeof AuthenticatedRevisionSetIdNotesRouteWithChildren
   '/_authenticated/revision/$setId/session': typeof AuthenticatedRevisionSetIdSessionRoute
   '/_authenticated/revision/$setId/summary': typeof AuthenticatedRevisionSetIdSummaryRoute
+  '/_authenticated/study-together/$groupId_/team': typeof AuthenticatedStudyTogetherGroupIdTeamRoute
   '/api/public/classroom/callback': typeof ApiPublicClassroomCallbackRoute
   '/api/public/hooks/classroom-sync': typeof ApiPublicHooksClassroomSyncRoute
   '/api/public/hooks/voice-dispatcher': typeof ApiPublicHooksVoiceDispatcherRoute
@@ -549,6 +559,7 @@ export interface FileRouteTypes {
     | '/revision/$setId/notes'
     | '/revision/$setId/session'
     | '/revision/$setId/summary'
+    | '/study-together/$groupId/team'
     | '/api/public/classroom/callback'
     | '/api/public/hooks/classroom-sync'
     | '/api/public/hooks/voice-dispatcher'
@@ -600,6 +611,7 @@ export interface FileRouteTypes {
     | '/revision/$setId/notes'
     | '/revision/$setId/session'
     | '/revision/$setId/summary'
+    | '/study-together/$groupId/team'
     | '/api/public/classroom/callback'
     | '/api/public/hooks/classroom-sync'
     | '/api/public/hooks/voice-dispatcher'
@@ -654,6 +666,7 @@ export interface FileRouteTypes {
     | '/_authenticated/revision/$setId/notes'
     | '/_authenticated/revision/$setId/session'
     | '/_authenticated/revision/$setId/summary'
+    | '/_authenticated/study-together/$groupId_/team'
     | '/api/public/classroom/callback'
     | '/api/public/hooks/classroom-sync'
     | '/api/public/hooks/voice-dispatcher'
@@ -1001,6 +1014,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicClassroomCallbackRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/_authenticated/study-together/$groupId_/team': {
+      id: '/_authenticated/study-together/$groupId_/team'
+      path: '/study-together/$groupId/team'
+      fullPath: '/study-together/$groupId/team'
+      preLoaderRoute: typeof AuthenticatedStudyTogetherGroupIdTeamRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/revision/$setId/summary': {
       id: '/_authenticated/revision/$setId/summary'
       path: '/summary'
@@ -1159,6 +1179,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedStudyTogetherCreateRoute: typeof AuthenticatedStudyTogetherCreateRoute
   AuthenticatedVoiceCallNewRoute: typeof AuthenticatedVoiceCallNewRoute
   AuthenticatedStudyTogetherIndexRoute: typeof AuthenticatedStudyTogetherIndexRoute
+  AuthenticatedStudyTogetherGroupIdTeamRoute: typeof AuthenticatedStudyTogetherGroupIdTeamRoute
 }
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
@@ -1178,6 +1199,8 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedStudyTogetherCreateRoute: AuthenticatedStudyTogetherCreateRoute,
   AuthenticatedVoiceCallNewRoute: AuthenticatedVoiceCallNewRoute,
   AuthenticatedStudyTogetherIndexRoute: AuthenticatedStudyTogetherIndexRoute,
+  AuthenticatedStudyTogetherGroupIdTeamRoute:
+    AuthenticatedStudyTogetherGroupIdTeamRoute,
 }
 
 const AuthenticatedRouteRouteWithChildren =

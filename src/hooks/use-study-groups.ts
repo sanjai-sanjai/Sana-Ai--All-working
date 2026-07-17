@@ -9,6 +9,7 @@ export interface StudyGroup {
   semester?: string;
   description?: string;
   avatar_url?: string;
+  invite_code?: string;
   created_at: string;
   updated_at: string;
 }
@@ -19,6 +20,7 @@ export interface StudyGroupMember {
   role: string;
   status: string; // 'active' | 'invited'
   progress_pct: number;
+  study_status: string; // 'online' | 'studying' | 'in_meeting' | 'away' | 'offline'
   is_online: boolean;
   last_seen: string;
   joined_at: string;
@@ -45,9 +47,7 @@ export interface MemberWithProfile extends StudyGroupMember {
     avatar_url: string;
     username: string;
   } | null;
-  group_member_profiles: {
-    completed_at: string | null;
-  } | null;
+  group_member_profiles: GroupMemberProfile | null;
 }
 
 // 1. Fetch user's active groups
@@ -94,7 +94,7 @@ export function useGroupMembers(groupId: string) {
 
       const { data: gProfiles, error: pError } = await (supabase as any)
         .from("group_member_profiles")
-        .select("user_id, completed_at")
+        .select("*")
         .eq("group_id", groupId);
         
       if (pError) throw pError;
@@ -246,6 +246,61 @@ export function useDeleteGroupMutation() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["study-groups"] });
+    }
+  });
+}
+
+// 9. Join group by invite code
+export function useJoinGroupByCodeMutation() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ userId, code }: { userId: string; code: string }) => {
+      const { data, error } = await (supabase as any).rpc("join_group_by_code", {
+        p_user_id: userId,
+        p_invite_code: code
+      });
+      if (error) throw error;
+      return data; // returns the group_id
+    },
+    onSuccess: (groupId) => {
+      queryClient.invalidateQueries({ queryKey: ["study-groups"] });
+      if (groupId) {
+        queryClient.invalidateQueries({ queryKey: ["group-members", groupId] });
+      }
+    }
+  });
+}
+
+// 10. Update member study status
+export function useUpdateStudyStatusMutation() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ groupId, userId, studyStatus }: { groupId: string; userId: string; studyStatus: string }) => {
+      const { error } = await (supabase as any)
+        .from("study_group_members")
+        .update({ study_status: studyStatus })
+        .match({ group_id: groupId, user_id: userId });
+      if (error) throw error;
+    },
+    onSuccess: (_, { groupId }) => {
+      queryClient.invalidateQueries({ queryKey: ["group-members", groupId] });
+    }
+  });
+}
+
+// 11. Promote member to admin
+export function usePromoteAdminMutation() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ groupId, userId }: { groupId: string; userId: string }) => {
+      const { error } = await (supabase as any)
+        .from("study_group_members")
+        .update({ role: "admin" })
+        .match({ group_id: groupId, user_id: userId });
+      if (error) throw error;
+    },
+    onSuccess: (_, { groupId }) => {
+      queryClient.invalidateQueries({ queryKey: ["group-members", groupId] });
     }
   });
 }

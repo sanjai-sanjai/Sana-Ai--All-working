@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { toast } from "sonner";
 import { useState, useEffect, useRef, useCallback } from "react";
 import { GroupAppBar } from "@/components/study-together/GroupAppBar";
@@ -35,6 +35,7 @@ function StudyGroupDetails() {
   const { groupId } = Route.useParams();
   const { user } = useAuth();
   const queryClient = useQueryClient();
+  const navigate = useNavigate();
   
   const { data: groups, isPending: loadingGroups } = useStudyGroups(user?.id);
   const { data: members, isPending: loadingMembers } = useGroupMembers(groupId);
@@ -260,6 +261,9 @@ function StudyGroupDetails() {
           avatar_url: m.profiles?.avatar_url,
           content: m.content,
           message_type: m.message_type,
+          file_url: m.file_url,
+          file_name: m.file_name,
+          file_size: m.file_size,
           created_at: m.created_at,
           is_mine: m.user_id === user?.id,
           is_ai: m.user_id === null,
@@ -308,6 +312,9 @@ function StudyGroupDetails() {
               avatar_url: avatarUrl,
               content: newMsg.content,
               message_type: newMsg.message_type,
+              file_url: newMsg.file_url,
+              file_name: newMsg.file_name,
+              file_size: newMsg.file_size,
               created_at: newMsg.created_at,
               is_mine: newMsg.user_id === user?.id,
               is_ai: newMsg.is_ai,
@@ -325,6 +332,9 @@ function StudyGroupDetails() {
             avatar_url: avatarUrl,
             content: newMsg.content,
             message_type: newMsg.message_type,
+            file_url: newMsg.file_url,
+            file_name: newMsg.file_name,
+            file_size: newMsg.file_size,
             created_at: newMsg.created_at,
             is_mine: newMsg.user_id === user?.id,
             is_ai: newMsg.user_id === null,
@@ -394,27 +404,28 @@ function StudyGroupDetails() {
     }
   }, [aiMessages, isAiTyping, scrollToBottom]);
 
-  const handleSendMessage = async (content: string, type: 'text'|'file'|'ai_roadmap'|'ai_mention' = 'text', fileDetails?: { name: string, size: number }) => {
+  const handleSendMessage = async (content: string, type: string = 'text', fileDetails?: { name: string, size: number }, fileUrl?: string) => {
     const isAiMention = content.includes("@Sana_AI");
-    console.log("SENDING MESSAGE:", { content, isAiMention, type });
+    console.log("SENDING MESSAGE:", { content, isAiMention, type, fileUrl });
     
     // Optimistic ID so we can deduplicate when realtime fires
     const optimisticId = `optimistic-${Date.now()}-${Math.random().toString(36).slice(2)}`;
 
     // 1. Optimistically add message to chat immediately
-    const optimisticMsg: ChatMessage = {
+    const optimisticMsg: ChatMessage & { file_url?: string } = {
       id: optimisticId,
       user_id: user?.id || null,
       user_name: 'You',
       avatar_url: null,
       content,
       message_type: type as any,
+      file_url: fileUrl,
       created_at: new Date().toISOString(),
       is_mine: true,
       is_ai: false,
       status: 'sent'
     };
-    setDbMessages(prev => [...prev, optimisticMsg]);
+    setDbMessages(prev => [...prev, optimisticMsg as any]);
     scrollToBottom();
 
     // 2. If it's an AI mention, trigger Groq inference IMMEDIATELY (don't wait for DB)
@@ -530,7 +541,10 @@ function StudyGroupDetails() {
       group_id: groupId,
       user_id: user?.id,
       content,
-      message_type: type
+      message_type: type,
+      file_url: fileUrl,
+      file_name: fileDetails?.name,
+      file_size: fileDetails?.size
     }).select().single().then(({ data: insertedMsg, error }: any) => {
       if (insertedMsg) {
         // Replace optimistic message with real one (update ID + status)
@@ -615,7 +629,7 @@ function StudyGroupDetails() {
           isMeetActive={!!activeMeet}
           onMeetClick={() => {
             if (activeMeet) {
-              setActiveTab("meet");
+              setActiveTab("meeting" as any);
             } else {
               handleStartMeet();
             }
@@ -644,7 +658,10 @@ function StudyGroupDetails() {
       {activeTab === "chat" && (
         <div className="flex flex-1 flex-col overflow-hidden pb-[80px]">
           <div ref={chatScrollRef} className="flex-1 overflow-y-auto overflow-x-hidden pt-4 relative">
-            <TeamProgressOverview members={uiMembers} onViewAll={() => {}} />
+            <TeamProgressOverview 
+              members={uiMembers} 
+              onViewAll={() => navigate({ to: "/study-together/$groupId/team", params: { groupId } })} 
+            />
             {activeMeet && (
               <LiveMeetBanner 
                 startedBy={members?.find((m: any) => m.user_id === activeMeet.created_by)?.profiles?.display_name || "Member"}

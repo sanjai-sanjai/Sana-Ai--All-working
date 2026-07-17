@@ -2,11 +2,12 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { Search, ChevronRight, Users, Plus, ArrowLeft, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/hooks/use-auth";
-import { useStudyGroups } from "@/hooks/use-study-groups";
+import { useStudyGroups, useJoinGroupByCodeMutation } from "@/hooks/use-study-groups";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
+import { useNavigate } from "@tanstack/react-router";
 import sanaHero from "@/assets/sana-hero.png";
 import roboImage from "@/assets/robo.png";
 import { useResolvedAvatar } from "@/hooks/use-resolved-avatar";
@@ -78,17 +79,29 @@ function StudyTogetherScreen() {
   const [searchQuery, setSearchQuery] = useState("");
   const [showJoinModal, setShowJoinModal] = useState(false);
   const [joinCode, setJoinCode] = useState("");
+  
+  const joinGroupMutation = useJoinGroupByCodeMutation();
+  const navigate = useNavigate();
 
   const filteredGroups = groups?.filter((group: any) =>
     group.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
     (group.subject && group.subject.toLowerCase().includes(searchQuery.toLowerCase()))
   );
 
-  const handleJoinSubmit = () => {
-    if (joinCode.trim()) {
-      toast.success(`Successfully joined group: ${joinCode}`);
-      setShowJoinModal(false);
-      setJoinCode("");
+  const handleJoinSubmit = async () => {
+    if (joinCode.trim() && user?.id) {
+      try {
+        const groupId = await joinGroupMutation.mutateAsync({ 
+          userId: user.id, 
+          code: joinCode.trim() 
+        });
+        toast.success(`Successfully joined group!`);
+        setShowJoinModal(false);
+        setJoinCode("");
+        navigate({ to: "/study-together/$groupId", params: { groupId } });
+      } catch (err: any) {
+        toast.error("Failed to join group: " + err.message);
+      }
     }
   };
 
@@ -311,15 +324,15 @@ function StudyTogetherScreen() {
 
             <button
               onClick={handleJoinSubmit}
-              disabled={!joinCode.trim()}
+              disabled={!joinCode.trim() || joinGroupMutation.isPending}
               className={cn(
                 "mt-4 flex w-full items-center justify-center rounded-[18px] py-3.5 text-[14px] font-bold transition-all",
-                joinCode.trim()
+                joinCode.trim() && !joinGroupMutation.isPending
                   ? "bg-[#6366f1] text-white shadow-[0_4px_14px_rgba(99,102,241,0.35)] hover:opacity-90 active:scale-95 cursor-pointer"
                   : "bg-gray-100 text-gray-400 cursor-not-allowed shadow-none"
               )}
             >
-              Join Group
+              {joinGroupMutation.isPending ? "Joining..." : "Join Group"}
             </button>
           </div>
         </div>

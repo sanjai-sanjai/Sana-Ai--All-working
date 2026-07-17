@@ -13,7 +13,7 @@ export interface ChatMessage {
   user_name: string;
   avatar_url?: string | null;
   content: string;
-  message_type: 'text' | 'file' | 'ai_roadmap' | 'ai_mention' | 'meet_start' | 'meet_join' | 'meet_end';
+  message_type: 'text' | 'file' | 'ai_roadmap' | 'ai_mention' | 'meet_start' | 'meet_join' | 'meet_end' | 'audio';
   file_url?: string;
   file_name?: string;
   file_size?: number;
@@ -260,6 +260,19 @@ export function GroupChat({ messages, isAiTyping = false, onAction, isMeetActive
                     <button className="grid h-11 w-11 shrink-0 place-items-center rounded-full bg-white shadow-[0_2px_10px_rgb(0,0,0,0.06)] border border-gray-100 hover:bg-gray-50 active:scale-95 transition-all">
                       <Download className="h-[20px] w-[20px] text-gray-700 stroke-[2.5]" />
                     </button>
+                  </div>
+                )}
+
+                {msg.message_type === 'audio' && msg.file_url && (
+                  <div className="mt-1">
+                    <audio 
+                      controls 
+                      src={msg.file_url} 
+                      className={cn(
+                        "h-12 w-full min-w-[240px] max-w-[320px] rounded-full outline-none",
+                        msg.is_mine ? "opacity-100" : "opacity-90"
+                      )} 
+                    />
                   </div>
                 )}
 
