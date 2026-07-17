@@ -1,8 +1,10 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { toast } from "sonner";
 import { useState, useEffect, useRef, useCallback } from "react";
 import { GroupAppBar } from "@/components/study-together/GroupAppBar";
 import { TeamProgressOverview } from "@/components/study-together/TeamProgressOverview";
 import { LiveMeetBanner } from "@/components/study-together/LiveMeetBanner";
+import { MeetSummaryCard } from "@/components/study-together/MeetSummaryCard";
 import { GroupChat, ChatMessage } from "@/components/study-together/GroupChat";
 import { ChatComposer } from "@/components/study-together/ChatComposer";
 import { BottomNavPills, TabType } from "@/components/study-together/BottomNavPills";
@@ -11,6 +13,7 @@ import { ResourcesPanel, Resource } from "@/components/study-together/ResourcesP
 import { MembersPanel } from "@/components/study-together/MembersPanel";
 import { AiCoachDashboard } from "@/components/study-together/AiCoachDashboard";
 import { TeachingWorkspace } from "@/components/study-together/TeachingWorkspace";
+import { EmbeddedMeeting } from "@/components/study-together/EmbeddedMeeting";
 import { StudyTogetherRightSidebar } from "@/components/study-together/StudyTogetherRightSidebar";
 import { useGroupMembers, useStudyGroups } from "@/hooks/use-study-groups";
 import { useAuth } from "@/hooks/use-auth";
@@ -36,8 +39,128 @@ function StudyGroupDetails() {
   const { data: members, isPending: loadingMembers } = useGroupMembers(groupId);
   
   const [activeTab, setActiveTab] = useState<TabType>("chat");
-  const [isMeetActive, setIsMeetActive] = useState(false);
+  const [activeMeet, setActiveMeet] = useState<any>(null);
+  const [meetTimer, setMeetTimer] = useState("00:00");
+  const [showMeetSummary, setShowMeetSummary] = useState<any>(null);
   const [showSettings, setShowSettings] = useState(false);
+  
+  useEffect(() => {
+    if (!groupId) return;
+    const fetchStatus = () => {
+      fetch(`/api/group-meet/status?groupId=${groupId}`)
+        .then(res => res.json())
+        .then(data => {
+          if (data.meet) {
+            if (data.meet.status === 'active') {
+              setActiveMeet(data.meet);
+              setShowMeetSummary(null);
+            } else {
+              setActiveMeet(null);
+              setShowMeetSummary(data.meet);
+            }
+          }
+        }).catch(console.error);
+    };
+    
+    fetchStatus();
+
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') fetchStatus();
+    };
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+    return () => document.removeEventListener("visibilitychange", handleVisibilityChange);
+  }, [groupId]);
+
+  useEffect(() => {
+    let interval: NodeJS.Timeout;
+    if (activeMeet && activeMeet.status === 'active') {
+      interval = setInterval(() => {
+        const start = new Date(activeMeet.started_at).getTime();
+        const now = new Date().getTime();
+        const diffSecs = Math.floor((now - start) / 1000);
+        
+        const hrs = Math.floor(diffSecs / 3600);
+        const mins = Math.floor((diffSecs % 3600) / 60);
+        const secs = diffSecs % 60;
+        
+        const pad = (n: number) => n.toString().padStart(2, '0');
+        setMeetTimer(`${hrs > 0 ? pad(hrs) + ':' : ''}${pad(mins)}:${pad(secs)}`);
+      }, 1000);
+    } else {
+      setMeetTimer("00:00");
+    }
+    return () => clearInterval(interval);
+  }, [activeMeet]);
+
+  const handleStartMeet = async () => {
+    if (!groupId || !user?.id) return;
+    
+    if (activeMeet && activeMeet.status === 'active') {
+      toast.info("A study session is already live. Joining now...");
+      handleJoinMeet();
+      return;
+    }
+
+    const toastId = toast.loading("Creating Google Meet...");
+    
+    try {
+      const res = await fetch("/api/group-meet/start", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          groupId,
+          userId: user.id,
+          userName: members?.find((m: any) => m.user_id === user.id)?.profiles?.display_name
+        })
+      });
+      const data = await res.json();
+      if (data.meet) {
+        toast.success("Study Session created successfully.", { id: toastId });
+        setActiveMeet(data.meet);
+        setActiveTab("meeting");
+      }
+    } catch (e) { 
+      console.error(e); 
+      toast.error("Failed to create meet.", { id: toastId });
+    }
+  };
+
+  const handleJoinMeet = async () => {
+    if (!activeMeet || !user?.id) return;
+    try {
+      await fetch("/api/group-meet/join", {
+         method: "POST",
+         headers: { "Content-Type": "application/json" },
+         body: JSON.stringify({
+           meetId: activeMeet.id,
+           groupId,
+           userId: user.id,
+           userName: members?.find((m: any) => m.user_id === user.id)?.profiles?.display_name
+         })
+      });
+      setActiveTab("meeting");
+    } catch (e) { console.error(e); }
+  };
+
+  const handleEndMeet = async () => {
+    if (!activeMeet || !groupId || !user?.id) return;
+    const toastId = toast.loading("Ending meeting...");
+    try {
+      await fetch("/api/group-meet/end", {
+         method: "POST",
+         headers: { "Content-Type": "application/json" },
+         body: JSON.stringify({
+           meetId: activeMeet.id,
+           groupId,
+           userId: user.id
+         })
+      });
+      toast.success("Meeting ended.", { id: toastId });
+    } catch (e) { 
+      console.error(e); 
+      toast.error("Failed to end meeting.", { id: toastId });
+    }
+  };
   
   // Topic context for My Study Space
   const [topicContext, setTopicContext] = useState<{ id?: string; title: string; assignee: string } | null>(null);
@@ -211,6 +334,19 @@ function StudyGroupDetails() {
       })
       .on('postgres_changes', { event: '*', schema: 'public', table: 'study_group_resources', filter: `group_id=eq.${groupId}` }, () => {
          queryClient.invalidateQueries({ queryKey: ["study_groups"] });
+      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'study_group_meets', filter: `group_id=eq.${groupId}` }, (payload) => {
+        const meet = payload.new as any;
+        if (meet.status === 'active') {
+          setActiveMeet(meet);
+          setShowMeetSummary(null);
+        } else if (meet.status === 'ended') {
+          setActiveMeet(null);
+          setShowMeetSummary(meet);
+          queryClient.invalidateQueries({ queryKey: ["study_groups"] });
+          queryClient.invalidateQueries({ queryKey: ["study-group-meeting"] });
+          queryClient.invalidateQueries({ queryKey: ["group-chat"] });
+        }
       })
       .subscribe();
 
@@ -445,9 +581,19 @@ function StudyGroupDetails() {
           memberCount={members?.length || 0} 
           semester={group?.semester || ""} 
           avatarUrl={group?.avatar_url}
-          onMeetClick={() => setIsMeetActive(true)}
-          isMeetActive={isMeetActive}
+          onMeetClick={handleStartMeet}
+          isMeetActive={!!activeMeet}
         />
+
+      {activeTab === "meeting" && activeMeet && (
+        <EmbeddedMeeting 
+          roomUrl={activeMeet.meet_url}
+          participantCount={Array.isArray(activeMeet.active_members) ? activeMeet.active_members.length : 1}
+          onLeave={() => setActiveTab("chat")}
+          onEnd={handleEndMeet}
+          isCreator={activeMeet.created_by === user?.id || members?.find((m:any) => m.user_id === user?.id)?.role === 'owner'}
+        />
+      )}
 
       {showSettings && (
         <GroupSettingsPanel 
@@ -461,20 +607,31 @@ function StudyGroupDetails() {
         <div className="flex flex-1 flex-col overflow-hidden pb-[80px]">
           <div ref={chatScrollRef} className="flex-1 overflow-y-auto overflow-x-hidden pt-4 relative">
             <TeamProgressOverview members={uiMembers} onViewAll={() => {}} />
-            {isMeetActive && (
-              <>
-                {/* @ts-ignore */}
-                <LiveMeetBanner 
-                  startedBy={uiMembers.find((m: any) => !m.is_you)?.name || "Someone"} 
-                  onJoin={() => {}} 
-                  onDismiss={() => setIsMeetActive(false)}
-                />
-              </>
+            {activeMeet && (
+              <LiveMeetBanner 
+                startedBy={members?.find((m: any) => m.user_id === activeMeet.created_by)?.profiles?.display_name || "Member"}
+                timeStarted={activeMeet.started_at}
+                timerString={meetTimer}
+                activeMembersCount={Array.isArray(activeMeet.active_members) ? activeMeet.active_members.length : 1}
+                totalMembers={members?.length || 0}
+                isCreator={activeMeet.created_by === user?.id || members?.find((m:any) => m.user_id === user?.id)?.role === 'owner'}
+                onJoin={handleJoinMeet} 
+                onEnd={handleEndMeet}
+              />
+            )}
+            {!activeMeet && showMeetSummary && (
+              <MeetSummaryCard
+                 startedBy={members?.find((m: any) => m.user_id === showMeetSummary.created_by)?.profiles?.display_name || "Member"}
+                 durationString={`${Math.floor((showMeetSummary.duration_seconds || 0) / 60)}m ${(showMeetSummary.duration_seconds || 0) % 60}s`}
+                 participantCount={Array.isArray(showMeetSummary.active_members) ? showMeetSummary.active_members.length : 0}
+                 onDismiss={() => setShowMeetSummary(null)}
+              />
             )}
             <GroupChat 
               messages={allMessages} 
               isAiTyping={isAiTyping && streamingMessages.length === 0}
               onAction={handleAction}
+              isMeetActive={!!activeMeet}
             />
           </div>
           <div className="absolute bottom-24 left-0 right-0 z-10 pointer-events-none">
@@ -527,7 +684,7 @@ function StudyGroupDetails() {
           </div>
         ) : null}
 
-      {activeTab !== "teaching_workspace" && (
+      {activeTab !== "teaching_workspace" && activeTab !== "meeting" && (
         <BottomNavPills activeTab={activeTab} onChange={setActiveTab} />
       )}
       </div>

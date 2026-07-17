@@ -134,9 +134,6 @@ export function ChatComposer({ onSendMessage }: ChatComposerProps) {
           <Send className="h-[20px] w-[20px] ml-0.5 stroke-[2]" />
         </button>
       </div>
-
-      {/* iOS Home Indicator */}
-      <div className="absolute bottom-2 left-1/2 -translate-x-1/2 w-[130px] h-[5px] bg-gray-900 rounded-full" />
     </div>
   );
 }

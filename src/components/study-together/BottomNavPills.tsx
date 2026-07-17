@@ -2,7 +2,7 @@ import { MessageCircle, FileText, Calendar, Compass, Sparkles, Brain } from "luc
 import { cn } from "@/lib/utils";
 import { motion } from "framer-motion";
 
-export type TabType = "chat" | "plan" | "resources" | "ai_workspace" | "dashboard" | "teaching_workspace";
+export type TabType = "chat" | "plan" | "resources" | "ai_workspace" | "dashboard" | "teaching_workspace" | "meeting";
 
 interface BottomNavPillsProps {
   activeTab: TabType;

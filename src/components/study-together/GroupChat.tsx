@@ -1,6 +1,6 @@
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
-import { Download, Check, CheckCheck, FileText, ImageIcon } from "lucide-react";
+import { Download, Check, CheckCheck, FileText, ImageIcon, Video, UserPlus } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { renderWithMentions } from "./AIMentionTag";
 import { AITypingIndicator } from "./AITypingIndicator";
@@ -13,7 +13,7 @@ export interface ChatMessage {
   user_name: string;
   avatar_url?: string | null;
   content: string;
-  message_type: 'text' | 'file' | 'ai_roadmap' | 'ai_mention';
+  message_type: 'text' | 'file' | 'ai_roadmap' | 'ai_mention' | 'meet_start' | 'meet_join' | 'meet_end';
   file_url?: string;
   file_name?: string;
   file_size?: number;
@@ -28,6 +28,7 @@ interface GroupChatProps {
   messages: ChatMessage[];
   isAiTyping?: boolean;
   onAction?: (action: string, payload: any) => void;
+  isMeetActive?: boolean;
 }
 
 // Per-user sender name colors to match the reference design
@@ -63,13 +64,75 @@ function MessageContent({ content, isAiResponse, onAction }: { content: string; 
   return <p className="text-[15px] leading-[1.65]">{content}</p>;
 }
 
-export function GroupChat({ messages, isAiTyping = false, onAction }: GroupChatProps) {
+export function GroupChat({ messages, isAiTyping = false, onAction, isMeetActive = false }: GroupChatProps) {
   return (
     <div className="flex flex-col gap-9 px-3 pb-[200px] pt-6 relative">
       <div className="absolute inset-0 z-[-1] opacity-40 mix-blend-multiply pointer-events-none" style={{ backgroundImage: 'radial-gradient(#e5e7eb 1px, transparent 1px)', backgroundSize: '24px 24px' }} />
       {messages.map((msg, idx) => {
         const isConsecutive = idx > 0 && messages[idx - 1].user_id === msg.user_id && messages[idx - 1].is_ai === msg.is_ai;
         const isAiResponse = msg.is_ai && msg.message_type !== 'text' || (msg.is_ai && msg.content.length > 100);
+
+        if (['meet_start', 'meet_join', 'meet_end'].includes(msg.message_type)) {
+          return (
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              key={msg.id}
+              className="w-full flex justify-center my-2"
+            >
+              {msg.message_type === 'meet_start' && (
+                (() => {
+                  // If meet is active, only the last meet_start is considered the active one
+                  const isThisActive = isMeetActive && msg.id === messages.filter(m => m.message_type === 'meet_start').pop()?.id;
+                  
+                  if (isThisActive) {
+                    return (
+                      <div className="bg-[#f3f0ff] border border-[#6366f1]/30 rounded-2xl p-4 max-w-[80%] w-[400px] flex items-start gap-4 shadow-sm relative overflow-hidden">
+                        <div className="absolute top-0 left-0 w-full h-[2px] bg-gradient-to-r from-[#6366f1] to-purple-500 animate-pulse" />
+                        <div className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-white text-[#6366f1] shadow-sm">
+                          <Video className="h-5 w-5 fill-current animate-pulse" />
+                        </div>
+                        <div className="flex flex-col">
+                          <p className="text-[14px] leading-relaxed text-[#4f46e5] font-semibold whitespace-pre-wrap">{msg.content}</p>
+                          <span className="text-[11px] text-[#6366f1]/60 font-medium mt-1">{format(new Date(msg.created_at), 'hh:mm a')}</span>
+                        </div>
+                      </div>
+                    );
+                  } else {
+                    return (
+                      <div className="bg-gray-50 border border-gray-200 rounded-2xl p-4 max-w-[80%] w-[350px] flex items-start gap-4 shadow-sm opacity-70">
+                        <div className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-white text-gray-400 shadow-sm">
+                          <Video className="h-5 w-5" />
+                        </div>
+                        <div className="flex flex-col">
+                          <p className="text-[14px] leading-relaxed text-gray-600 font-semibold whitespace-pre-wrap">Study Session Ended</p>
+                          <span className="text-[11px] text-gray-400 font-medium mt-1">{format(new Date(msg.created_at), 'hh:mm a')}</span>
+                        </div>
+                      </div>
+                    );
+                  }
+                })()
+              )}
+              {msg.message_type === 'meet_join' && (
+                <div className="bg-gray-50 border border-gray-100 rounded-full px-4 py-1.5 flex items-center gap-2">
+                  <UserPlus className="h-3.5 w-3.5 text-gray-400" />
+                  <span className="text-[12.5px] font-medium text-gray-500">{msg.content}</span>
+                </div>
+              )}
+              {msg.message_type === 'meet_end' && (
+                <div className="bg-gray-50 border border-gray-200 rounded-2xl p-4 max-w-[80%] w-[350px] flex items-start gap-4 shadow-sm">
+                  <div className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-white text-gray-400 shadow-sm">
+                    <Video className="h-5 w-5" />
+                  </div>
+                  <div className="flex flex-col">
+                    <p className="text-[14px] leading-relaxed text-gray-600 font-semibold whitespace-pre-wrap">{msg.content}</p>
+                    <span className="text-[11px] text-gray-400 font-medium mt-1">{format(new Date(msg.created_at), 'hh:mm a')}</span>
+                  </div>
+                </div>
+              )}
+            </motion.div>
+          );
+        }
 
         // AI messages (both system AI and @mention AI responses)
         if (msg.is_ai) {
