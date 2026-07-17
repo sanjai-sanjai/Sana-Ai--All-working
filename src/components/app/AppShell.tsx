@@ -10,7 +10,9 @@ import { BottomTabBar } from "./BottomTabBar";
  */
 export function AppShell({ children }: { children: ReactNode }) {
   const loc = useLocation();
-  const hideBottomNav = loc.pathname.includes("/study-together/create");
+  const hideBottomNav = 
+    loc.pathname.includes("/study-together/create") || 
+    (loc.pathname.startsWith("/study-together/") && loc.pathname.length > "/study-together/".length);
 
   return (
     <div className="min-h-[100dvh] w-full bg-gradient-to-br from-lavender/60 via-background to-background md:from-lavender md:via-background md:to-lavender/60">
