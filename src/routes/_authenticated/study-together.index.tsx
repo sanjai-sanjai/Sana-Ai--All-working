@@ -30,8 +30,8 @@ function StudyTogetherScreen() {
   const [showJoinModal, setShowJoinModal] = useState(false);
   const [joinCode, setJoinCode] = useState("");
 
-  const filteredGroups = groups?.filter((group: any) => 
-    group.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
+  const filteredGroups = groups?.filter((group: any) =>
+    group.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
     (group.subject && group.subject.toLowerCase().includes(searchQuery.toLowerCase()))
   );
 
@@ -144,7 +144,7 @@ function StudyTogetherScreen() {
             <div className="text-[13px] font-bold text-[#6366F1] leading-tight">Join Study Group</div>
             <div className="text-[11px] text-gray-500 font-medium leading-tight mt-1 pr-2">Enter code to join a study group</div>
           </div>
-          
+
           <Link to="/study-together/create" className="flex flex-col rounded-[24px] bg-[#F8F6FF] p-4 border border-[#F3F0FF] shadow-sm active:scale-[0.98] transition-transform relative overflow-hidden">
             <div className="flex items-center justify-between mb-3">
               <div className="grid h-[42px] w-[42px] place-items-center rounded-full bg-[#A855F7] text-white shadow-[0_4px_12px_rgba(168,85,247,0.3)]">
@@ -161,7 +161,7 @@ function StudyTogetherScreen() {
       {/* Your Study Groups */}
       <div className="mx-5 mt-8">
         <h3 className="text-[15px] font-extrabold text-gray-900 mb-3 tracking-tight">Your Study Groups</h3>
-        
+
         {isLoading && (
           <div className="space-y-3">
             {[1, 2].map(i => <div key={i} className="h-[84px] w-full animate-pulse rounded-[24px] bg-gray-200/50" />)}
@@ -179,10 +179,10 @@ function StudyTogetherScreen() {
             const color = colors[idx % colors.length];
 
             return (
-              <Link 
-                to={`/study-together/$groupId`} 
-                params={{ groupId: group.id }} 
-                key={group.id} 
+              <Link
+                to={`/study-together/$groupId`}
+                params={{ groupId: group.id }}
+                key={group.id}
                 className="flex items-center gap-4 rounded-[24px] bg-white p-4 shadow-[0_2px_16px_rgba(0,0,0,0.03)] border border-gray-100/60 hover:shadow-md active:scale-[0.98] transition-all"
               >
                 {/* Icon */}
@@ -205,11 +205,11 @@ function StudyTogetherScreen() {
                 {/* Avatars */}
                 <div className="flex items-center -space-x-2 shrink-0">
                   {[1, 2, 3].map(i => (
-                    <img 
-                      key={i} 
-                      src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${group.id}${i}&backgroundColor=f3f0ff`} 
-                      className="h-[30px] w-[30px] rounded-full border-2 border-white bg-gray-50" 
-                      alt="member" 
+                    <img
+                      key={i}
+                      src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${group.id}${i}&backgroundColor=f3f0ff`}
+                      className="h-[30px] w-[30px] rounded-full border-2 border-white bg-gray-50"
+                      alt="member"
                     />
                   ))}
                   <div className="grid h-[30px] w-[30px] place-items-center rounded-full border-2 border-white bg-[#F3F0FF] text-[10px] font-bold text-[#6366F1]">
@@ -219,7 +219,7 @@ function StudyTogetherScreen() {
               </Link>
             );
           })}
-          
+
           {filteredGroups?.length === 0 && (
             <div className="text-center py-8 text-gray-500 font-medium">
               No groups found matching "{searchQuery}"
@@ -234,7 +234,7 @@ function StudyTogetherScreen() {
           <h3 className="text-[15px] font-extrabold text-gray-900 tracking-tight">Friends Online</h3>
           <button className="text-[12px] font-bold text-[#6366F1] active:opacity-70 transition-opacity">View All</button>
         </div>
-        
+
         <div className="flex gap-3.5 px-5 overflow-x-auto hide-scrollbar pb-2">
           {FRIENDS_ONLINE.map(friend => (
             <div key={friend.id} className="flex flex-col items-center gap-2 min-w-[76px] rounded-[24px] bg-white p-3.5 shadow-[0_2px_16px_rgba(0,0,0,0.03)] border border-gray-100/60 active:scale-95 transition-transform">
@@ -255,7 +255,7 @@ function StudyTogetherScreen() {
       <div className="fixed bottom-6 left-1/2 -translate-x-1/2 w-[calc(100%-40px)] max-w-[440px] z-30">
         <div className="relative flex items-center justify-between rounded-[24px] bg-gradient-to-r from-[#F4F1FF] to-[#EBE5FF] p-4 shadow-[0_12px_40px_rgba(99,102,241,0.2)] border border-white/60 backdrop-blur-xl">
           <div className="absolute -left-2 bottom-0 h-[85px] w-[85px] z-10 pointer-events-none drop-shadow-xl">
-             <img src={roboImage} alt="Robot" className="h-full w-full object-contain object-bottom" />
+            <img src={roboImage} alt="Robot" className="h-full w-full object-contain object-bottom" />
           </div>
           <div className="pl-[70px] pr-2 flex-1 relative z-20">
             <h4 className="text-[14px] font-extrabold text-gray-900 leading-tight tracking-tight">Let's study together!</h4>
@@ -272,22 +272,22 @@ function StudyTogetherScreen() {
       {showJoinModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4 animate-in fade-in duration-200">
           <div className="w-full max-w-[320px] rounded-[28px] bg-white p-6 shadow-[0_20px_60px_-10px_rgba(0,0,0,0.2)] relative animate-in zoom-in-95 duration-200">
-            <button 
+            <button
               onClick={() => setShowJoinModal(false)}
               className="absolute right-4 top-4 grid h-8 w-8 place-items-center rounded-full bg-gray-50 text-gray-400 hover:text-gray-900 transition-colors"
             >
               <X className="h-4 w-4 stroke-[3]" />
             </button>
-            
+
             <div className="mx-auto mb-4 grid h-14 w-14 place-items-center rounded-full bg-gradient-to-br from-[#F4F1FF] to-[#EBE5FF] text-[#6366F1] shadow-inner">
               <Users className="h-6 w-6 stroke-[2.5]" />
             </div>
-            
+
             <h3 className="text-center text-[18px] font-extrabold text-gray-900 tracking-tight">Join Study Group</h3>
             <p className="mt-2 text-center text-[12px] font-medium text-gray-500 px-2 leading-snug">
               Enter the invite code from your friends to join their study space.
             </p>
-            
+
             <div className="mt-6">
               <input
                 type="text"
@@ -298,14 +298,14 @@ function StudyTogetherScreen() {
                 autoFocus
               />
             </div>
-            
+
             <button
               onClick={handleJoinSubmit}
               disabled={!joinCode.trim()}
               className={cn(
                 "mt-4 flex w-full items-center justify-center rounded-[18px] py-3.5 text-[14px] font-bold transition-all",
-                joinCode.trim() 
-                  ? "bg-[#6366f1] text-white shadow-[0_4px_14px_rgba(99,102,241,0.35)] hover:opacity-90 active:scale-95 cursor-pointer" 
+                joinCode.trim()
+                  ? "bg-[#6366f1] text-white shadow-[0_4px_14px_rgba(99,102,241,0.35)] hover:opacity-90 active:scale-95 cursor-pointer"
                   : "bg-gray-100 text-gray-400 cursor-not-allowed shadow-none"
               )}
             >
