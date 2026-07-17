@@ -15,8 +15,9 @@ import { AiCoachDashboard } from "@/components/study-together/AiCoachDashboard";
 import { TeachingWorkspace } from "@/components/study-together/TeachingWorkspace";
 import { EmbeddedMeeting } from "@/components/study-together/EmbeddedMeeting";
 import { StudyTogetherRightSidebar } from "@/components/study-together/StudyTogetherRightSidebar";
-import { useGroupMembers, useStudyGroups } from "@/hooks/use-study-groups";
+import { useGroupMembers, useStudyGroups, useGroupMemberProfile, useSaveGroupMemberProfile } from "@/hooks/use-study-groups";
 import { useAuth } from "@/hooks/use-auth";
+import { LearningProfileEditor, LearningProfile } from "@/components/study-together/LearningProfileEditor";
 import { GroupSettingsPanel } from "@/components/study-together/GroupSettingsPanel";
 import { useChat } from "@ai-sdk/react";
 import { supabase } from "@/integrations/supabase/client";
@@ -37,6 +38,8 @@ function StudyGroupDetails() {
   
   const { data: groups, isPending: loadingGroups } = useStudyGroups(user?.id);
   const { data: members, isPending: loadingMembers } = useGroupMembers(groupId);
+  const { data: myProfile, isPending: loadingProfile } = useGroupMemberProfile(groupId, user?.id);
+  const saveProfileMutation = useSaveGroupMemberProfile();
   
   const [activeTab, setActiveTab] = useState<TabType>("chat");
   const [activeMeet, setActiveMeet] = useState<any>(null);
@@ -540,7 +543,7 @@ function StudyGroupDetails() {
     });
   };
 
-  if (loadingGroups || loadingMembers) {
+  if (loadingGroups || loadingMembers || loadingProfile) {
     return <div className="min-h-svh bg-background flex items-center justify-center font-bold">Loading group...</div>;
   }
 
@@ -572,17 +575,52 @@ function StudyGroupDetails() {
 
   const allMessages = [...dbMessages, ...streamingMessages];
 
+  const needsProfile = !myProfile?.completed_at;
+
+  const handleSaveProfile = async (profileData: LearningProfile) => {
+    if (!groupId || !user?.id) return;
+    const toastId = toast.loading("Saving profile...");
+    try {
+      await saveProfileMutation.mutateAsync({
+        group_id: groupId,
+        user_id: user.id,
+        ...profileData
+      });
+      toast.success("Profile saved!", { id: toastId });
+    } catch (err: any) {
+      toast.error("Failed to save profile: " + err.message, { id: toastId });
+    }
+  };
+
+  if (needsProfile) {
+    return (
+      <div className="relative mx-auto flex h-svh w-full max-w-[480px] md:max-w-[880px] lg:max-w-[920px] flex-col bg-white overflow-hidden shadow-[0_20px_60px_-10px_rgba(0,0,0,0.15)] ring-1 ring-gray-200/60 md:rounded-[32px] p-6 pt-10 overflow-y-auto">
+        <LearningProfileEditor 
+          onSave={handleSaveProfile}
+          initialProfile={myProfile ? { ...myProfile, teaching_preference: myProfile.teaching_preference || undefined } : undefined} 
+        />
+      </div>
+    );
+  }
+
   return (
     <div className="relative mx-auto flex h-svh w-full max-w-[480px] md:max-w-[880px] lg:max-w-[920px] flex-row bg-white overflow-hidden shadow-[0_20px_60px_-10px_rgba(0,0,0,0.15)] ring-1 ring-gray-200/60 md:rounded-l-[32px] md:rounded-r-[32px]">
       <div className="relative flex flex-col w-full max-w-[480px] h-full bg-white z-20 shrink-0">
         <GroupAppBar 
           groupId={groupId}
-          groupName={group?.name || "Study Group"} 
-          memberCount={members?.length || 0} 
-          semester={group?.semester || ""} 
-          avatarUrl={group?.avatar_url}
-          onMeetClick={handleStartMeet}
+          groupName={group.name}
+          memberCount={members?.length || 0}
+          semester={group.semester || "General"}
+          avatarUrl={group.avatar_url}
           isMeetActive={!!activeMeet}
+          onMeetClick={() => {
+            if (activeMeet) {
+              setActiveTab("meet");
+            } else {
+              handleStartMeet();
+            }
+          }}
+          onSettingsClick={() => setShowSettings(true)}
         />
 
       {activeTab === "meeting" && activeMeet && (

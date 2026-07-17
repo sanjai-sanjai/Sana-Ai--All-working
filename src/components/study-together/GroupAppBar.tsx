@@ -1,6 +1,7 @@
-import { Search, MoreVertical, ArrowLeft, Video } from "lucide-react";
+import { Search, Settings, ArrowLeft, Video } from "lucide-react";
 import { Link } from "@tanstack/react-router";
 import { cn } from "@/lib/utils";
+import { useResolvedAvatar } from "@/hooks/use-resolved-avatar";
 
 interface GroupAppBarProps {
   groupId: string;
@@ -10,6 +11,7 @@ interface GroupAppBarProps {
   avatarUrl?: string | null;
   onMeetClick: () => void;
   isMeetActive: boolean;
+  onSettingsClick: () => void;
 }
 
 export function GroupAppBar({ 
@@ -18,8 +20,11 @@ export function GroupAppBar({
   semester, 
   avatarUrl, 
   onMeetClick,
-  isMeetActive 
+  isMeetActive,
+  onSettingsClick
 }: GroupAppBarProps) {
+  const resolvedAvatar = useResolvedAvatar(avatarUrl || null);
+
   return (
     <div className="sticky top-0 z-50 flex items-center justify-between bg-white/80 backdrop-blur-xl px-4 py-3.5 border-b border-gray-100 shadow-[0_4px_30px_-10px_rgba(0,0,0,0.08)]">
       <div className="flex items-center gap-3">
@@ -28,7 +33,7 @@ export function GroupAppBar({
         </Link>
         <div className="flex items-center gap-3.5">
           {avatarUrl ? (
-            <img src={avatarUrl} alt={groupName} className="h-[52px] w-[52px] rounded-full object-cover shadow-[0_4px_16px_rgb(0,0,0,0.1)] ring-2 ring-white" />
+            <img src={resolvedAvatar} alt={groupName} className="h-[52px] w-[52px] rounded-full object-cover shadow-[0_4px_16px_rgb(0,0,0,0.1)] ring-2 ring-white" />
           ) : (
             <div className="grid h-[52px] w-[52px] shrink-0 place-items-center rounded-full bg-gradient-to-br from-[#1a1a2e] to-[#16213e] shadow-[0_4px_16px_rgb(0,0,0,0.15)] ring-2 ring-white">
               <span className="text-[18px] font-bold text-white">DS</span>
@@ -57,8 +62,8 @@ export function GroupAppBar({
         <button className="grid h-[40px] w-[40px] shrink-0 place-items-center rounded-full text-gray-400 hover:text-gray-700 active:scale-95 transition-all hover:bg-gray-50">
           <Search className="h-[20px] w-[20px] stroke-[2.5]" />
         </button>
-        <button className="grid h-[40px] w-[40px] shrink-0 place-items-center rounded-full text-gray-400 hover:text-gray-700 active:scale-95 transition-all hover:bg-gray-50">
-          <MoreVertical className="h-[20px] w-[20px] stroke-[2.5]" />
+        <button onClick={onSettingsClick} className="grid h-[40px] w-[40px] shrink-0 place-items-center rounded-full text-gray-400 hover:text-gray-700 active:scale-95 transition-all hover:bg-gray-50">
+          <Settings className="h-[20px] w-[20px] stroke-[2.5]" />
         </button>
       </div>
     </div>

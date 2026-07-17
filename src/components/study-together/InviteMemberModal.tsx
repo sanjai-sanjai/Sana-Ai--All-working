@@ -27,9 +27,7 @@ export function InviteMemberModal({ groupId, groupName, onClose }: InviteMemberM
           group_id: groupId,
           user_id: profile.user_id,
           role: "member",
-          status: "invited",
-          strengths: [],
-          learning_preferences: {}
+          status: "invited"
         });
         
       if (memberError) {

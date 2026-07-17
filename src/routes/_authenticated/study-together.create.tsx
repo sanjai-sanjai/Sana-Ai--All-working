@@ -3,11 +3,12 @@ import { toast } from "sonner";
 import { TopBar } from "@/components/app/TopBar";
 import { Users, Plus, BookOpen, GraduationCap, Target, FileText, Search, ChevronDown, X } from "lucide-react";
 import { GradientButton } from "@/components/app/GradientButton";
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { useAuth } from "@/hooks/use-auth";
 import { useSearchProfiles, Profile } from "@/hooks/use-profiles";
 import { useCreateGroupMutation } from "@/hooks/use-study-groups";
-import { LearningProfileEditor, LearningProfile } from "@/components/study-together/LearningProfileEditor";
+import { supabase } from "@/integrations/supabase/client";
+import { CropModal } from "@/components/app/CropModal";
 
 export const Route = createFileRoute("/_authenticated/study-together/create")({
   component: CreateStudyGroupScreen,
@@ -64,9 +65,6 @@ function SelectField({ label, icon: Icon, value, onChange, options }: any) {
 function CreateStudyGroupScreen() {
   const nav = useNavigate();
   const { user } = useAuth();
-  
-  // Steps: 'details' -> 'onboarding'
-  const [step, setStep] = useState<'details' | 'onboarding'>('details');
 
   // Form State
   const [name, setName] = useState("");
@@ -78,9 +76,13 @@ function CreateStudyGroupScreen() {
   const [searchQuery, setSearchQuery] = useState("");
   const { data: searchResults } = useSearchProfiles(searchQuery);
   const [selectedMembers, setSelectedMembers] = useState<Profile[]>([]);
-  
-  // Learning Profile State for Owner
-  const [ownerProfile, setOwnerProfile] = useState<LearningProfile | null>(null);
+
+  // Group Avatar State
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
+  const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
+  const [isUploading, setIsUploading] = useState(false);
+  const [cropModalSrc, setCropModalSrc] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const createMutation = useCreateGroupMutation();
 
@@ -95,15 +97,55 @@ function CreateStudyGroupScreen() {
     setSelectedMembers(selectedMembers.filter(m => m.user_id !== userId));
   };
 
-  const handleNextStep = () => {
+  const handleAvatarChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !user) return;
+    
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error("Image must be under 5 MB");
+      return;
+    }
+    
+    if (!file.type.startsWith("image/")) {
+      toast.error("Please choose an image");
+      return;
+    }
+
+    setCropModalSrc(URL.createObjectURL(file));
+    // Reset the input so the same file can be chosen again
+    e.target.value = "";
+  };
+
+  const handleCropSubmit = async (croppedFile: File) => {
+    if (!user) return;
+    setCropModalSrc(null);
+    setIsUploading(true);
+
+    const ext = croppedFile.name.split(".").pop()?.toLowerCase() || "jpg";
+    const path = `group-avatars/temp-${user.id}-${Date.now()}.${ext}`;
+
+    const { error: upErr } = await supabase.storage.from("user-uploads").upload(path, croppedFile, {
+      upsert: true,
+      contentType: croppedFile.type,
+    });
+
+    setIsUploading(false);
+
+    if (upErr) {
+      toast.error("Failed to upload image: " + upErr.message);
+      return;
+    }
+
+    setAvatarPreview(URL.createObjectURL(croppedFile));
+    setAvatarUrl(path);
+  };
+
+  const handleCreateGroup = () => {
     if (!name.trim()) {
       toast.error("Group name is required");
       return;
     }
-    setStep('onboarding');
-  };
 
-  const handleCreateGroup = (profile: LearningProfile) => {
     if (!user) return;
     
     // The user running this is the owner
@@ -112,8 +154,6 @@ function CreateStudyGroupScreen() {
         user_id: user.id,
         role: "owner" as const,
         status: "active" as const,
-        strengths: profile.strengths,
-        learning_preferences: profile.learning_styles, // we use styles from profile
       },
       // Invited members
       ...selectedMembers.map(m => ({
@@ -128,6 +168,7 @@ function CreateStudyGroupScreen() {
       subject,
       semester,
       description,
+      avatar_url: avatarUrl || undefined,
       members: membersPayload
     }, {
       onSuccess: (groupId) => {
@@ -140,25 +181,6 @@ function CreateStudyGroupScreen() {
     });
   };
 
-  if (step === 'onboarding') {
-    return (
-      <div className="min-h-svh bg-background pb-8 pt-10">
-        <TopBar
-          title="Team Setup"
-          subtitle="Configure your learning profile"
-          back={() => setStep('details')}
-          hideDefaults
-        />
-        <div className="mt-8">
-          <LearningProfileEditor 
-            onSave={handleCreateGroup} 
-            onCancel={() => setStep('details')} 
-          />
-        </div>
-      </div>
-    );
-  }
-
   return (
     <div className="min-h-svh bg-background pb-20">
       <TopBar
@@ -169,12 +191,31 @@ function CreateStudyGroupScreen() {
       />
 
       <div className="mx-auto mt-6 flex justify-center">
-        <div className="relative grid h-24 w-24 place-items-center rounded-full bg-primary/10 shadow-inner">
-          <Users className="h-10 w-10 text-primary" />
-          <div className="absolute bottom-0 right-0 grid h-7 w-7 place-items-center rounded-full border-[3px] border-background bg-card shadow-sm cursor-pointer hover:scale-105 transition-transform">
+        <div 
+          onClick={() => !isUploading && fileInputRef.current?.click()}
+          className="relative grid h-24 w-24 place-items-center rounded-full bg-primary/10 shadow-inner cursor-pointer"
+        >
+          {avatarPreview ? (
+            <img src={avatarPreview} alt="Group Avatar" className="h-full w-full rounded-full object-cover" />
+          ) : (
+            <Users className="h-10 w-10 text-primary" />
+          )}
+          <div className="absolute bottom-0 right-0 grid h-7 w-7 place-items-center rounded-full border-[3px] border-background bg-card shadow-sm hover:scale-105 transition-transform">
             <Plus className="h-4 w-4 text-primary" />
           </div>
+          {isUploading && (
+            <div className="absolute inset-0 grid place-items-center rounded-full bg-background/60 text-[10px] font-bold">
+              Uploading…
+            </div>
+          )}
         </div>
+        <input 
+          type="file" 
+          ref={fileInputRef}
+          onChange={handleAvatarChange}
+          accept="image/*"
+          className="hidden" 
+        />
       </div>
 
       <InputField 
@@ -265,12 +306,18 @@ function CreateStudyGroupScreen() {
 
       <div className="mt-10 px-4">
         <GradientButton
-          onClick={handleNextStep}
-          disabled={createMutation.isPending}
+          onClick={handleCreateGroup}
+          disabled={createMutation.isPending || isUploading}
         >
-          {createMutation.isPending ? "Creating..." : "Next Step"}
+          {createMutation.isPending ? "Creating..." : "Create Group"}
         </GradientButton>
       </div>
+
+      <CropModal
+        imageSrc={cropModalSrc}
+        onClose={() => setCropModalSrc(null)}
+        onCropSubmit={handleCropSubmit}
+      />
     </div>
   );
 }

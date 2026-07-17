@@ -1,15 +1,18 @@
 import { useState } from "react";
-import { Check, Brain, Lightbulb, TrendingDown, Target, FileText } from "lucide-react";
+import { Check, Brain, Lightbulb, TrendingDown, Target, FileText, Clock, Users, ChevronDown } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 export interface LearningProfile {
-  strengths: string[];
-  weaknesses: string[];
-  learning_styles: string[];
+  strongest_skills: string[];
+  weak_skills: string[];
+  learning_style: string[];
+  confidence_levels: Record<string, string>;
+  teaching_preference: string;
+  availability: string[];
 }
 
 interface LearningProfileEditorProps {
-  initialProfile?: LearningProfile;
+  initialProfile?: Partial<LearningProfile>;
   onSave: (profile: LearningProfile) => void;
   onCancel?: () => void;
 }
@@ -21,9 +24,14 @@ const AREA_OPTIONS = [
 ];
 
 const STYLE_OPTIONS = [
-  "Fast Reading", "Visual", "Practice", "Examples", 
-  "Video", "MCQ", "Discussion"
+  "Visual", "Practice", "Examples", "Video", "Reading", "Discussion", "MCQ", "Hands-on"
 ];
+
+const AVAILABILITY_OPTIONS = [
+  "Morning", "Afternoon", "Evening", "Night", "Weekend Only"
+];
+
+const CONFIDENCE_LEVELS = ["Beginner", "Intermediate", "Advanced", "Expert"];
 
 function MultiSelect({ options, selected, onChange, icon: Icon, colorClass }: any) {
   const toggle = (opt: string) => {
@@ -56,18 +64,55 @@ function MultiSelect({ options, selected, onChange, icon: Icon, colorClass }: an
   );
 }
 
+function SelectGroup({ label, options, selected, onChange }: any) {
+  return (
+    <div className="flex flex-wrap gap-2">
+      {options.map((opt: string) => {
+        const isSelected = selected === opt;
+        return (
+          <button
+            key={opt}
+            onClick={() => onChange(opt)}
+            className={cn(
+              "flex items-center gap-1.5 rounded-full px-3.5 py-2 text-[13px] font-semibold transition-all border",
+              isSelected 
+                ? "border-transparent bg-primary text-white shadow-sm"
+                : "border-border bg-card text-muted-foreground hover:bg-muted"
+            )}
+          >
+            {isSelected && <Check className="h-3.5 w-3.5" />}
+            {opt}
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
 export function LearningProfileEditor({ initialProfile, onSave, onCancel }: LearningProfileEditorProps) {
-  const [strengths, setStrengths] = useState<string[]>(initialProfile?.strengths || []);
-  const [weaknesses, setWeaknesses] = useState<string[]>(initialProfile?.weaknesses || []);
-  const [styles, setStyles] = useState<string[]>(initialProfile?.learning_styles || []);
+  const [strongestSkills, setStrongestSkills] = useState<string[]>(initialProfile?.strongest_skills || []);
+  const [weakSkills, setWeakSkills] = useState<string[]>(initialProfile?.weak_skills || []);
+  const [learningStyle, setLearningStyle] = useState<string[]>(initialProfile?.learning_style || []);
+  const [confidenceLevels, setConfidenceLevels] = useState<Record<string, string>>(initialProfile?.confidence_levels || {});
+  const [teachingPreference, setTeachingPreference] = useState<string>(initialProfile?.teaching_preference || "Sometimes");
+  const [availability, setAvailability] = useState<string[]>(initialProfile?.availability || []);
 
   const handleSave = () => {
     onSave({
-      strengths,
-      weaknesses,
-      learning_styles: styles,
+      strongest_skills: strongestSkills,
+      weak_skills: weakSkills,
+      learning_style: learningStyle,
+      confidence_levels: confidenceLevels,
+      teaching_preference: teachingPreference,
+      availability,
     });
   };
+
+  const handleConfidenceChange = (skill: string, level: string) => {
+    setConfidenceLevels(prev => ({ ...prev, [skill]: level }));
+  };
+
+  const selectedSkills = Array.from(new Set([...strongestSkills, ...weakSkills]));
 
   return (
     <div className="flex flex-col gap-8 pb-10">
@@ -89,24 +134,10 @@ export function LearningProfileEditor({ initialProfile, onSave, onCancel }: Lear
           </div>
           <MultiSelect 
             options={AREA_OPTIONS} 
-            selected={strengths} 
-            onChange={setStrengths}
+            selected={strongestSkills} 
+            onChange={setStrongestSkills}
             icon={Target}
             colorClass="bg-green-500"
-          />
-        </div>
-
-        <div>
-          <div className="mb-3 flex items-center gap-2">
-            <Lightbulb className="h-5 w-5 text-primary" />
-            <h3 className="text-[15px] font-bold text-foreground">Preferred Learning Style</h3>
-          </div>
-          <MultiSelect 
-            options={STYLE_OPTIONS} 
-            selected={styles} 
-            onChange={setStyles}
-            icon={FileText}
-            colorClass="bg-primary"
           />
         </div>
 
@@ -117,9 +148,80 @@ export function LearningProfileEditor({ initialProfile, onSave, onCancel }: Lear
           </div>
           <MultiSelect 
             options={AREA_OPTIONS} 
-            selected={weaknesses} 
-            onChange={setWeaknesses}
+            selected={weakSkills} 
+            onChange={setWeakSkills}
             colorClass="bg-red-500"
+          />
+        </div>
+
+        {selectedSkills.length > 0 && (
+          <div className="rounded-2xl border border-border bg-card p-4 shadow-sm">
+            <h3 className="text-[14px] font-bold text-foreground mb-4">Confidence Levels</h3>
+            <div className="space-y-4">
+              {selectedSkills.map(skill => (
+                <div key={skill} className="flex flex-col gap-2">
+                  <span className="text-[13px] font-semibold text-muted-foreground">{skill}</span>
+                  <div className="flex flex-wrap gap-2">
+                    {CONFIDENCE_LEVELS.map(level => {
+                      const isSelected = confidenceLevels[skill] === level;
+                      return (
+                        <button
+                          key={level}
+                          onClick={() => handleConfidenceChange(skill, level)}
+                          className={cn(
+                            "rounded-lg px-3 py-1.5 text-[12px] font-bold transition-all border",
+                            isSelected
+                              ? "bg-primary text-primary-foreground border-transparent shadow-soft"
+                              : "bg-background border-border text-muted-foreground hover:bg-muted"
+                          )}
+                        >
+                          {level}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        <div>
+          <div className="mb-3 flex items-center gap-2">
+            <Lightbulb className="h-5 w-5 text-primary" />
+            <h3 className="text-[15px] font-bold text-foreground">Preferred Learning Style</h3>
+          </div>
+          <MultiSelect 
+            options={STYLE_OPTIONS} 
+            selected={learningStyle} 
+            onChange={setLearningStyle}
+            icon={FileText}
+            colorClass="bg-primary"
+          />
+        </div>
+
+        <div>
+          <div className="mb-3 flex items-center gap-2">
+            <Users className="h-5 w-5 text-purple-500" />
+            <h3 className="text-[15px] font-bold text-foreground">I enjoy teaching teammates</h3>
+          </div>
+          <SelectGroup 
+            options={["Yes", "Sometimes", "No"]} 
+            selected={teachingPreference} 
+            onChange={setTeachingPreference} 
+          />
+        </div>
+
+        <div>
+          <div className="mb-3 flex items-center gap-2">
+            <Clock className="h-5 w-5 text-blue-500" />
+            <h3 className="text-[15px] font-bold text-foreground">Time Availability</h3>
+          </div>
+          <MultiSelect 
+            options={AVAILABILITY_OPTIONS} 
+            selected={availability} 
+            onChange={setAvailability}
+            colorClass="bg-blue-500"
           />
         </div>
       </div>
