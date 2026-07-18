@@ -5,6 +5,9 @@ import { motion, AnimatePresence } from "framer-motion";
 import { renderWithMentions } from "./AIMentionTag";
 import { AITypingIndicator } from "./AITypingIndicator";
 import { SanaMarkdown } from "@/components/sana-markdown";
+import { SmartTopicDistributionCard } from "./SmartTopicDistributionCard";
+import { SmartDistributionIntentCard } from "./SmartDistributionIntentCard";
+import { PlanApprovedCard } from "./PlanApprovedCard";
 import sanaAvatar from "@/assets/reply-avatar.png";
 
 export interface ChatMessage {
@@ -13,7 +16,7 @@ export interface ChatMessage {
   user_name: string;
   avatar_url?: string | null;
   content: string;
-  message_type: 'text' | 'file' | 'ai_roadmap' | 'ai_mention' | 'meet_start' | 'meet_join' | 'meet_end' | 'audio';
+  message_type: 'text' | 'file' | 'ai_roadmap' | 'ai_mention' | 'meet_start' | 'meet_join' | 'meet_end' | 'audio' | 'ai_distribution_proposal' | 'ai_distribution_intent' | 'ai_plan_approved';
   file_url?: string;
   file_name?: string;
   file_size?: number;
@@ -29,6 +32,7 @@ interface GroupChatProps {
   isAiTyping?: boolean;
   onAction?: (action: string, payload: any) => void;
   isMeetActive?: boolean;
+  members?: any[];
 }
 
 // Per-user sender name colors to match the reference design
@@ -64,7 +68,7 @@ function MessageContent({ content, isAiResponse, onAction }: { content: string; 
   return <p className="text-[15px] leading-[1.65]">{content}</p>;
 }
 
-export function GroupChat({ messages, isAiTyping = false, onAction, isMeetActive = false }: GroupChatProps) {
+export function GroupChat({ messages, isAiTyping = false, onAction, isMeetActive = false, members = [] }: GroupChatProps) {
   return (
     <div className="flex flex-col gap-9 px-3 pb-[200px] pt-6 relative">
       <div className="absolute inset-0 z-[-1] opacity-40 mix-blend-multiply pointer-events-none" style={{ backgroundImage: 'radial-gradient(#e5e7eb 1px, transparent 1px)', backgroundSize: '24px 24px' }} />
@@ -169,9 +173,79 @@ export function GroupChat({ messages, isAiTyping = false, onAction, isMeetActive
                   isAiResponse ? "p-6" : "p-6"
                 )}>
                   {isAiResponse ? (
-                    <div className="text-[13px] leading-relaxed text-gray-800">
-                      <SanaMarkdown content={msg.content} />
-                    </div>
+                    <>
+                      {msg.message_type === 'ai_roadmap' && (
+                        <div className="text-[14px] leading-relaxed text-gray-800">
+                          <SanaMarkdown content={msg.content} />
+                        </div>
+                      )}
+
+                      {msg.message_type === 'ai_distribution_intent' && (
+                        <div className="-mx-6 -mb-6 mt-4 border-t border-gray-100">
+                          <SmartDistributionIntentCard 
+                            introText={(() => {
+                              try {
+                                const jsonMatch = msg.content.match(/```json[\s\r\n]*([\s\S]*?)```/i);
+                                const parsed = jsonMatch ? JSON.parse(jsonMatch[1]) : {};
+                                return parsed.intro_text || "I can help organize your study. Shall I create a smart topic distribution for the team?";
+                              } catch (e) {
+                                return "I can help organize your study. Shall I create a smart topic distribution for the team?";
+                              }
+                            })()}
+                            onGenerate={() => onAction?.('generate_distribution', { messageId: msg.id })}
+                          />
+                        </div>
+                      )}
+
+                      {msg.message_type === 'ai_distribution_proposal' && (
+                        <div className="-mx-6 -mb-6 mt-4 border-t border-gray-100">
+                          <SmartTopicDistributionCard 
+                            data={(() => {
+                              try {
+                                const jsonMatch = msg.content.match(/```json[\s\r\n]*([\s\S]*?)```/i);
+                                return jsonMatch ? JSON.parse(jsonMatch[1]) : { type: 'topic_distribution', chapter: 'Unknown', assignments: [] };
+                              } catch (e) {
+                                return { type: 'topic_distribution', chapter: 'Unknown', assignments: [] };
+                              }
+                            })()}
+                            members={members || []}
+                            onApprove={(assignments) => onAction?.('approve_distribution', { messageId: msg.id, assignments })}
+                            onCancel={() => onAction?.('cancel_distribution', { messageId: msg.id })}
+                            onReassign={() => onAction?.('open_reassign', { messageId: msg.id, data: (() => {
+                              try {
+                                const jsonMatch = msg.content.match(/```json[\s\r\n]*([\s\S]*?)```/i);
+                                return jsonMatch ? JSON.parse(jsonMatch[1]) : { type: 'topic_distribution', chapter: 'Unknown', assignments: [] };
+                              } catch (e) {
+                                return { type: 'topic_distribution', chapter: 'Unknown', assignments: [] };
+                              }
+                            })()})}
+                          />
+                        </div>
+                      )}
+
+                      {msg.message_type === 'ai_plan_approved' && (
+                        <div className="-mx-6 -mb-6 mt-4 border-t border-gray-100">
+                          <PlanApprovedCard 
+                            assignments={(() => {
+                              try {
+                                const jsonMatch = msg.content.match(/```json[\s\r\n]*([\s\S]*?)```/i);
+                                return jsonMatch ? JSON.parse(jsonMatch[1]).assignments : [];
+                              } catch (e) {
+                                return [];
+                              }
+                            })()}
+                            members={members || []}
+                            onGoToSpace={() => onAction?.('go_to_study_space', {})}
+                          />
+                        </div>
+                      )}
+
+                      {(!msg.message_type || msg.message_type === 'text') && (
+                        <div className="text-[13px] leading-relaxed text-gray-800">
+                          <SanaMarkdown content={msg.content} />
+                        </div>
+                      )}
+                    </>
                   ) : (
                     <div className="text-[15px] leading-[1.7] text-gray-800 whitespace-pre-wrap" dangerouslySetInnerHTML={{ __html: msg.content.replace(/\n/g, '<br/>') }}>
                     </div>

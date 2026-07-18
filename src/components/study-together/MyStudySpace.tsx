@@ -7,6 +7,7 @@ import {
 import { ProgressRing } from "@/components/app/ProgressRing";
 import { cn } from "@/lib/utils";
 import { useChat } from "@ai-sdk/react";
+import { DefaultChatTransport } from "ai";
 import { SanaMarkdown } from "@/components/sana-markdown";
 import { useAuth } from "@/hooks/use-auth";
 
@@ -29,40 +30,60 @@ export function MyStudySpace({
   const [progress, setProgress] = useState(0);
   const [liveNotes, setLiveNotes] = useState<string>("");
 
+  const transport = useRef(
+    new DefaultChatTransport({
+      api: "/api/study-session",
+      body: () => ({
+        studentName: user?.user_metadata?.display_name || "Student",
+        topicTitle: topicContext?.title || "General Topic",
+        groupName: groupName,
+        progressPct: progress
+      })
+    })
+  ).current;
+
   const chatState = useChat({
-    api: "/api/study-session",
-    body: {
-      studentName: user?.user_metadata?.display_name || "Student",
-      topicTitle: topicContext?.title || "General Topic",
-      groupName: groupName,
-      progressPct: progress
-    },
-    onFinish: async (event: any) => {
+    id: "study-session-" + (topicContext?.id || "new"),
+    transport,
+    onFinish: async ({ message }: any) => {
       // Parse for notes block
-      const notesMatch = event.message.content.match(/```notes\n([\s\S]*?)```/);
+      const fullText = message.parts?.map((p: any) => p.type === "text" ? p.text : "").join("") || message.content || "";
+      const notesMatch = fullText.match(/```notes\n([\s\S]*?)```/);
       if (notesMatch && notesMatch[1]) {
         setLiveNotes(prev => prev ? prev + "\n" + notesMatch[1] : notesMatch[1]);
       }
       
       // Heuristic: If there's a mini check, we assume some progress is made
-      if (event.message.content.includes("Mini Check") && progress < 90) {
+      if (fullText.includes("Mini Check") && progress < 90) {
         setProgress(p => Math.min(p + 15, 100));
         // Note: Realistically, you would run a Supabase mutation here to update `study_group_topics` progress_pct.
       }
     }
   } as any);
 
-  const { messages, input, handleInputChange, handleSubmit, isLoading, append } = chatState as any;
+  const { messages = [], sendMessage, status } = chatState as any;
+  const isLoading = status === "submitted" || status === "streaming";
+  const [input, setInput] = useState("");
+  const initRef = useRef(false);
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => setInput(e.target.value);
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!input.trim() || isLoading || !sendMessage) return;
+    sendMessage({ role: "user", content: input.trim() });
+    setInput("");
+  };
 
   // Auto-start learning when a topic is selected
   useEffect(() => {
-    if (topicContext && messages.length === 0) {
-      append({
+    if (topicContext && messages.length === 0 && sendMessage && !initRef.current) {
+      initRef.current = true;
+      sendMessage({
         role: "user",
         content: `I am ready to learn ${topicContext.title}. Please introduce the roadmap and let's begin the first step.`
       });
     }
-  }, [topicContext, messages.length, append]);
+  }, [topicContext, messages.length, sendMessage]);
 
   useEffect(() => {
     if (scrollRef.current) {
@@ -160,23 +181,37 @@ export function MyStudySpace({
       {/* Learn Section (AI Guided Chat) */}
       {activeSection === 'learn' && (
         <div className="flex flex-col gap-4">
-          {messages.map((m: any) => (
+          {messages.map((m: any, idx: number) => {
+            const isLast = idx === messages.length - 1;
+            const fullText = m.parts?.map((p: any) => p.type === "text" ? p.text : "").join("") || m.content || "";
+            if (!fullText.trim() && m.role === "assistant" && status !== "streaming" && !isLast) return null;
+            
+            // Hide the robotic auto-prompt from the user's view for a cleaner UI
+            if (m.role === "user" && fullText.includes("I am ready to learn")) return null;
+            
+            const displayContent = fullText + (m.role === "assistant" && isLast && status === "streaming" ? "~~▋~~" : "");
+
+            return (
             <div 
               key={m.id}
-              className={cn("flex w-max max-w-[75%] flex-col gap-2 rounded-[20px] px-4 py-3 text-sm animate-in slide-in-from-bottom-2",
-                m.role === "user" ? "ml-auto bg-[#6366f1] text-white rounded-br-none" : "bg-white border border-gray-100 text-gray-900 rounded-bl-none"
+              className={cn(
+                "w-full transition-all duration-500 ease-out animate-in slide-in-from-bottom-4 fade-in",
+                m.role === "user" 
+                  ? "max-w-[85%] self-end rounded-2xl bg-[#5f5ce6] p-4 text-white shadow-md md:max-w-[75%]" 
+                  : "self-center rounded-3xl bg-white p-6 md:p-8 border border-gray-100 shadow-[0_4px_24px_rgba(0,0,0,0.02)]"
               )}
             >
-              <SanaMarkdown content={m.content} />
+              <SanaMarkdown content={displayContent} />
             </div>
-          ))}
+          )})}
           
-          {isLoading && (
-            <div className="flex items-center gap-2 text-[#6366f1] px-2">
-              <Loader2 className="h-4 w-4 animate-spin" />
-              <span className="text-xs font-bold uppercase tracking-wider">AI is typing...</span>
+          {isLoading && !messages.find((m: any) => m.role === "assistant" && (!m.parts || m.parts.length === 0)) && (
+            <div className="self-center text-[#5f5ce6] text-sm font-medium flex items-center justify-center gap-3 mt-2 p-6 rounded-3xl bg-white w-full border border-gray-100 shadow-[0_4px_24px_rgba(0,0,0,0.02)] animate-pulse">
+              <Loader2 className="h-5 w-5 animate-spin" />
+              Sana is thinking...
             </div>
           )}
+          <div ref={scrollRef} />
 
           {/* Chat Input for Mini Checks */}
           <div className="sticky bottom-4 mt-6 pt-4">
@@ -190,7 +225,7 @@ export function MyStudySpace({
               />
               <button
                 type="submit"
-                disabled={!input.trim() || isLoading}
+                disabled={!(input || '').trim() || isLoading}
                 className="absolute right-2 grid h-10 w-10 place-items-center rounded-full bg-[#6366f1] text-white transition-transform active:scale-95 disabled:opacity-50"
               >
                 <Send className="h-4 w-4" />

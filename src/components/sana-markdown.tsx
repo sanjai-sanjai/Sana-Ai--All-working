@@ -71,6 +71,10 @@ function SanaMarkdownInner({ content, onChip, busy, isLastAssistant, streaming, 
           a: ({ children, href }) => (
             <a href={href} target="_blank" rel="noreferrer" className="font-semibold text-primary underline underline-offset-2">{children}</a>
           ),
+          del: ({ children }) => {
+            if (children === "▋") return <span className="animate-pulse text-primary font-bold ml-0.5">▋</span>;
+            return <del className="line-through">{children}</del>;
+          },
           hr: () => <hr className="my-3 border-border" />,
           table: ({ children }) => (
             <div className="my-3 overflow-hidden rounded-2xl border border-border bg-card shadow-card">

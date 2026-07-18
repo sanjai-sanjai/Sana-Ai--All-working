@@ -15,10 +15,12 @@ import { AiCoachDashboard } from "@/components/study-together/AiCoachDashboard";
 import { TeachingWorkspace } from "@/components/study-together/TeachingWorkspace";
 import { EmbeddedMeeting } from "@/components/study-together/EmbeddedMeeting";
 import { StudyTogetherRightSidebar } from "@/components/study-together/StudyTogetherRightSidebar";
-import { useGroupMembers, useStudyGroups, useGroupMemberProfile, useSaveGroupMemberProfile } from "@/hooks/use-study-groups";
+import { useGroupMembers, useStudyGroups, useGroupMemberProfile, useSaveGroupMemberProfile, useMyStudyAssignment } from "@/hooks/use-study-groups";
 import { useAuth } from "@/hooks/use-auth";
 import { LearningProfileEditor, LearningProfile } from "@/components/study-together/LearningProfileEditor";
 import { GroupSettingsPanel } from "@/components/study-together/GroupSettingsPanel";
+import { ReassignTopicsModal } from "@/components/study-together/ReassignTopicsModal";
+import { TopicDistributionGuide } from "@/components/study-together/TopicDistributionGuide";
 import { useChat } from "@ai-sdk/react";
 import { supabase } from "@/integrations/supabase/client";
 import { useQueryClient } from "@tanstack/react-query";
@@ -40,6 +42,7 @@ function StudyGroupDetails() {
   const { data: groups, isPending: loadingGroups } = useStudyGroups(user?.id);
   const { data: members, isPending: loadingMembers } = useGroupMembers(groupId);
   const { data: myProfile, isPending: loadingProfile } = useGroupMemberProfile(groupId, user?.id);
+  const { data: myAssignment } = useMyStudyAssignment(groupId, user?.id);
   const saveProfileMutation = useSaveGroupMemberProfile();
   
   const [activeTab, setActiveTab] = useState<TabType>("chat");
@@ -47,6 +50,7 @@ function StudyGroupDetails() {
   const [meetTimer, setMeetTimer] = useState("00:00");
   const [showMeetSummary, setShowMeetSummary] = useState<any>(null);
   const [showSettings, setShowSettings] = useState(false);
+  const [reassignData, setReassignData] = useState<{ messageId: string, data: any } | null>(null);
   
   useEffect(() => {
     if (!groupId) return;
@@ -178,12 +182,93 @@ function StudyGroupDetails() {
           group_id: groupId, user_id: user.id, action: `started learning ${payload.title}`
         });
       }
+    } else if (action === 'approve_distribution') {
+      const toastId = toast.loading("Approving plan...");
+      try {
+        const assignments = payload.assignments;
+        if (!assignments || !assignments.length) throw new Error("No assignments to approve.");
+        
+        const inserts = assignments.map((a: any) => ({
+          group_id: groupId,
+          member_id: a.member_id,
+          topic: a.title,
+          subtopic: null,
+          estimated_duration: a.estimated_time,
+          reason: a.reason,
+          assigned_by_ai: true,
+          status: 'pending'
+        }));
+
+        const { error } = await (supabase as any).from("study_assignments").insert(inserts);
+        if (error) throw error;
+
+        toast.success("Study plan approved!", { id: toastId });
+        
+        const approvedData = {
+          type: "plan_approved",
+          assignments: payload.assignments
+        };
+
+        const { error: updateError } = await (supabase as any)
+          .from("study_group_messages")
+          .update({
+            content: "```json\n" + JSON.stringify(approvedData, null, 2) + "\n```",
+            message_type: 'ai_plan_approved'
+          })
+          .eq("id", payload.messageId);
+        
+        if (updateError) throw updateError;
+        
+        // Optimistically update the UI so it transforms instantly
+        setDbMessages(prev => prev.map(m => m.id === payload.messageId ? {
+          ...m,
+          content: "```json\n" + JSON.stringify(approvedData, null, 2) + "\n```",
+          message_type: 'ai_plan_approved'
+        } : m));
+
+      } catch (e: any) {
+        console.error(e);
+        toast.error("Failed to approve plan: " + e.message, { id: toastId });
+      }
+    } else if (action === 'cancel_distribution') {
+      toast("Topic distribution cancelled.");
+    } else if (action === 'generate_distribution') {
+      handleSendMessage("@Sana_AI Yes, please generate the smart topic distribution.", 'text');
+    } else if (action === 'open_reassign') {
+      setReassignData(payload);
+    } else if (action === 'go_to_study_space') {
+      setActiveTab('ai_workspace');
     }
   };
 
   const handleStartTeaching = (topicId: string, title: string) => {
     setTopicContext({ id: topicId, title, assignee: user?.id || '' });
     setActiveTab('teaching_workspace');
+  };
+
+  const handleSaveReassigned = async (newAssignments: any[]) => {
+    if (!reassignData) return;
+    const { messageId, data } = reassignData;
+    
+    // We update the original AI message with the newly rearranged assignments
+    const updatedData = {
+      ...data,
+      assignments: newAssignments
+    };
+
+    const newContent = "```json\n" + JSON.stringify(updatedData, null, 2) + "\n```";
+
+    const { error } = await (supabase as any)
+      .from("study_group_messages")
+      .update({ content: newContent })
+      .eq("id", messageId);
+
+    if (error) {
+      toast.error("Failed to save reassignments.");
+    } else {
+      toast.success("Topics reassigned successfully.");
+      setReassignData(null);
+    }
   };
 
   const handleApproveRedistribution = async (swap: any) => {
@@ -479,12 +564,29 @@ function StudyGroupDetails() {
 
           console.log("AI FULL RESPONSE RECEIVED:", fullResponse);
 
+          let messageType: any = 'text';
+          
+          // Parse for JSON block
+          const jsonMatch = fullResponse.match(/```json[\s\r\n]*([\s\S]*?)```/i);
+          if (jsonMatch && jsonMatch[1]) {
+             try {
+               const parsed = JSON.parse(jsonMatch[1]);
+               if (parsed.type === "topic_distribution") {
+                 messageType = 'ai_distribution_proposal';
+               } else if (parsed.type === "distribution_intent") {
+                 messageType = 'ai_distribution_intent';
+               }
+             } catch (e) {
+               console.error("Failed to parse AI JSON block", e);
+             }
+          }
+
           // On Finish: Save to DB
           const { data: aiInserted } = await (supabase as any).from("study_group_messages").insert({
             group_id: groupId,
             user_id: null,
             content: fullResponse,
-            message_type: 'text'
+            message_type: messageType
           }).select().single();
 
           if (aiInserted) {
@@ -494,36 +596,12 @@ function StudyGroupDetails() {
               user_name: 'Sana AI',
               avatar_url: null,
               content: fullResponse,
-              message_type: 'text',
+              message_type: messageType,
               created_at: aiInserted.created_at,
               is_mine: false,
               is_ai: true,
               status: 'read'
             }]);
-          }
-
-          // Parse for assignments block
-          const assignmentsMatch = fullResponse.match(/```assignments\n([\s\S]*?)```/);
-          if (assignmentsMatch && assignmentsMatch[1]) {
-            const lines = assignmentsMatch[1].split("\n").map((l: string) => l.trim()).filter(Boolean);
-            const inserts = lines.map((line: string) => {
-              const parts = line.split("|").map((p: string) => p.trim());
-              if (parts.length >= 2) {
-                const assignedMember = members?.find((m: any) => (m.profiles?.display_name || m.profiles?.username) === parts[1]);
-                return {
-                  group_id: groupId,
-                  title: parts[0],
-                  assigned_to: assignedMember?.user_id || null,
-                  difficulty: parts[3] || "Medium",
-                  status: "pending"
-                };
-              }
-              return null;
-            }).filter(Boolean);
-
-            if (inserts.length > 0) {
-              await (supabase as any).from("study_group_topics").insert(inserts);
-            }
           }
 
           setAiMessages([]);
@@ -682,11 +760,15 @@ function StudyGroupDetails() {
                  onDismiss={() => setShowMeetSummary(null)}
               />
             )}
+            
+            <TopicDistributionGuide />
+
             <GroupChat 
               messages={allMessages} 
               isAiTyping={isAiTyping && streamingMessages.length === 0}
               onAction={handleAction}
               isMeetActive={!!activeMeet}
+              members={uiMembers}
             />
           </div>
           <div className="absolute bottom-24 left-0 right-0 z-10 pointer-events-none">
@@ -697,13 +779,21 @@ function StudyGroupDetails() {
             )}
           </div>
           <ChatComposer onSendMessage={handleSendMessage} />
+          {reassignData && members && (
+            <ReassignTopicsModal
+              assignments={reassignData.data.assignments}
+              members={members}
+              onSave={handleSaveReassigned}
+              onCancel={() => setReassignData(null)}
+            />
+          )}
         </div>
       )}
 
         {activeTab === "ai_workspace" ? (
           <div className="flex-1 overflow-hidden pt-[104px]">
             <MyStudySpace 
-              topicContext={topicContext} 
+              topicContext={topicContext || (myAssignment ? { id: myAssignment.id, title: myAssignment.topic, assignee: user?.id || '' } : null)} 
               groupName={group.name} 
               onStartTeaching={handleStartTeaching}
             />

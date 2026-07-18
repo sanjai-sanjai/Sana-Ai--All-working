@@ -8,8 +8,14 @@ import {
   Menu, X, Search, Plus, Send, Mic, Bell, Sparkles, MessageCircle,
   MoreVertical, FileText, Image as ImageIcon, Youtube, Link2, PenSquare,
   Phone, Timer, HelpCircle, CheckCheck, GraduationCap, BookOpen, Map,
-  Paperclip, Loader2, Square,
+  Paperclip, Loader2, Square, Trash2, Share, Pin,
 } from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { SanaMarkdown } from "@/components/sana-markdown";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
@@ -84,10 +90,6 @@ type ClassroomDebug = {
 };
 
 function ChatPage() {
-  return <Chat />;
-}
-
-function Chat() {
   const nav = useNavigate();
   const qc = useQueryClient();
   const [threadId, setThreadId] = useState<string | null>(null);
@@ -101,6 +103,37 @@ function Chat() {
   const [uploading, setUploading] = useState(false);
   const [timelineFor, setTimelineFor] = useState<string | null>(null);
   const [pinned, setPinned] = useState<PinnedSection | null>(null);
+  const [pinnedChats, setPinnedChats] = useState<string[]>(() => {
+    try { return JSON.parse(localStorage.getItem("sana_pinned_chats") || "[]"); }
+    catch { return []; }
+  });
+
+  const togglePin = (id: string) => {
+    setPinnedChats(prev => {
+      const next = prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id];
+      localStorage.setItem("sana_pinned_chats", JSON.stringify(next));
+      return next;
+    });
+  };
+
+  const deleteChat = async (id: string) => {
+    const { data: u } = await supabase.auth.getUser();
+    if (!u.user) return;
+    await supabase.from("chat_threads").delete().eq("id", id).eq("user_id", u.user.id);
+    if (threadId === id) {
+      setThreadId(null);
+      setMessages([]);
+      setHeroDismissed(false);
+    }
+    qc.invalidateQueries({ queryKey: ["threads"] });
+    toast.success("Chat deleted");
+  };
+
+  const shareChat = (id: string) => {
+    navigator.clipboard.writeText(`${window.location.origin}/chat/${id}`);
+    toast.success("Chat link copied to clipboard!");
+  };
+
   const scrollerRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const pdfInputRef = useRef<HTMLInputElement>(null);
@@ -515,10 +548,6 @@ function Chat() {
       }
     }
 
-
-
-
-
     await supabase.from("chat_messages").insert({ thread_id: threadId, user_id: u.user.id, role: "user", content: fullText });
     const t = threads.find(x => x.id === threadId);
     if (t && (t.title === "New Chat" || !t.title)) {
@@ -674,14 +703,13 @@ function Chat() {
               )}
               {rendered && (
                 <SanaMarkdown
-                  content={rendered}
+                  content={rendered + (isLast && streamingAssistant ? "~~▋~~" : "")}
                   onChip={m.role === "assistant" ? (c) => send(c) : undefined}
                   busy={busy}
                   isLastAssistant={m.role === "assistant" && isLast}
                   streaming={m.role === "assistant" && isLast && streamingAssistant}
                 />
               )}
-              {isLast && streamingAssistant && <BlinkCaret />}
               {m.role === "assistant" && classroomSources[m.id]?.length ? (
                 <ClassroomCitations sources={classroomSources[m.id]} />
               ) : null}
@@ -694,7 +722,10 @@ function Chat() {
 
         {status === "submitted" && lastMsg?.role === "user" && (
           <Bubble role="assistant">
-            <span className="inline-flex gap-1"><Dot /><Dot delay={0.15} /><Dot delay={0.3} /></span>
+            <div className="flex items-center gap-2 text-[#5f5ce6] font-medium text-[14px] animate-pulse py-1">
+              <Loader2 className="h-4 w-4 animate-spin" />
+              Sana is thinking...
+            </div>
           </Bubble>
         )}
 
@@ -809,7 +840,11 @@ function Chat() {
       <ChatHistoryDrawer open={drawerOpen} onClose={() => setDrawerOpen(false)}
                          threads={threads} activeId={threadId}
                          onSelect={(id) => { setThreadId(id); setDrawerOpen(false); setHeroDismissed(true); }}
-                         onNew={newChat} avatarUrl={resolvedAvatarUrl} />
+                         onNew={newChat} avatarUrl={resolvedAvatarUrl}
+                         pinnedChats={pinnedChats}
+                         onTogglePin={togglePin}
+                         onDelete={deleteChat}
+                         onShare={shareChat} />
 
       <ConnectorSheet open={sheetOpen} onClose={() => setSheetOpen(false)}
                       onAction={(prompt) => { setSheetOpen(false); send(prompt); }}
@@ -972,13 +1007,24 @@ function QuickTile({ icon, label, sub, to, onClick, disabled, busy }: { icon: Re
   return <button type="button" onClick={onClick} disabled={disabled} aria-busy={busy || undefined} aria-label={label}>{inner}</button>;
 }
 
-function ChatHistoryDrawer({ open, onClose, threads, activeId, onSelect, onNew, avatarUrl }: {
+function ChatHistoryDrawer({ open, onClose, threads, activeId, onSelect, onNew, avatarUrl, pinnedChats, onTogglePin, onDelete, onShare }: {
   open: boolean; onClose: () => void;
   threads: { id: string; title: string; last_message_at: string }[];
   activeId: string | null; onSelect: (id: string) => void; onNew: () => void;
   avatarUrl: string;
+  pinnedChats: string[];
+  onTogglePin: (id: string) => void;
+  onDelete: (id: string) => void;
+  onShare: (id: string) => void;
 }) {
   const grouped = groupThreads(threads);
+  if (pinnedChats.length > 0) {
+    const pinned = threads.filter(t => pinnedChats.includes(t.id));
+    if (pinned.length > 0) {
+      grouped.unshift({ label: "Pinned", items: pinned });
+    }
+  }
+
   return (
     <AnimatePresence>
       {open && (
@@ -1012,8 +1058,8 @@ function ChatHistoryDrawer({ open, onClose, threads, activeId, onSelect, onNew, 
                   <ul className="space-y-1.5">
                     {g.items.map((t) => (
                       <li key={t.id}>
-                        <button onClick={() => onSelect(t.id)}
-                                className={cn("grid w-full grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-2 rounded-2xl p-2.5 text-left transition",
+                        <div role="button" tabIndex={0} onClick={() => onSelect(t.id)}
+                                className={cn("grid w-full grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-2 rounded-2xl p-2.5 text-left transition cursor-pointer",
                                   activeId === t.id ? "border border-primary/30 bg-primary/5" : "hover:bg-muted")}>
                           <span className={cn("grid h-8 w-8 shrink-0 place-items-center rounded-xl",
                             activeId === t.id ? "bg-primary/10 text-primary" : "bg-muted text-muted-foreground")}>
@@ -1025,8 +1071,30 @@ function ChatHistoryDrawer({ open, onClose, threads, activeId, onSelect, onNew, 
                               {new Date(t.last_message_at).toLocaleDateString()}
                             </span>
                           </span>
-                          <MoreVertical className="h-4 w-4 shrink-0 text-muted-foreground" />
-                        </button>
+                          <div onClick={(e) => e.stopPropagation()}>
+                            <DropdownMenu>
+                              <DropdownMenuTrigger asChild>
+                                <button className="grid h-8 w-8 shrink-0 place-items-center rounded-md hover:bg-muted/80 text-muted-foreground transition">
+                                  <MoreVertical className="h-4 w-4" />
+                                </button>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent align="end" className="w-40 rounded-xl shadow-card">
+                                <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onTogglePin(t.id); }} className="gap-2 text-[12px] font-semibold cursor-pointer">
+                                  <Pin className="h-3.5 w-3.5" />
+                                  {pinnedChats.includes(t.id) ? "Unpin Chat" : "Pin Chat"}
+                                </DropdownMenuItem>
+                                <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onShare(t.id); }} className="gap-2 text-[12px] font-semibold cursor-pointer">
+                                  <Share className="h-3.5 w-3.5" />
+                                  Share Chat
+                                </DropdownMenuItem>
+                                <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onDelete(t.id); }} className="gap-2 text-[12px] font-semibold text-destructive focus:bg-destructive/10 focus:text-destructive cursor-pointer">
+                                  <Trash2 className="h-3.5 w-3.5" />
+                                  Delete Chat
+                                </DropdownMenuItem>
+                              </DropdownMenuContent>
+                            </DropdownMenu>
+                          </div>
+                        </div>
                       </li>
                     ))}
                   </ul>

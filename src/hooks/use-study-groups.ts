@@ -304,3 +304,30 @@ export function usePromoteAdminMutation() {
     }
   });
 }
+
+// 12. Fetch user's active study assignment
+export function useMyStudyAssignment(groupId: string | undefined, userId: string | undefined) {
+  return useQuery({
+    queryKey: ["my-study-assignment", groupId, userId],
+    queryFn: async () => {
+      if (!groupId || !userId) return null;
+
+      const { data, error } = await (supabase as any)
+        .from("study_assignments")
+        .select("*")
+        .eq("group_id", groupId)
+        .eq("member_id", userId)
+        .in("status", ["pending", "in_progress"])
+        .order("assigned_at", { ascending: false })
+        .limit(1)
+        .single();
+
+      if (error) {
+        if (error.code === 'PGRST116') return null; // No rows found
+        throw error;
+      }
+      return data;
+    },
+    enabled: !!groupId && !!userId,
+  });
+}

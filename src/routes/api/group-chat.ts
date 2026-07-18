@@ -59,23 +59,46 @@ ${(members || []).map(m => {
 ${(topics || []).length > 0 ? (topics || []).map(t => `- [${t.status}] ${t.title} (Assigned to: ${t.assigned_to_name})`).join("\n") : "No topics assigned yet."}
 
 ## SYLLABUS UNDERSTANDING & TOPIC DISTRIBUTION
-If the user uploads a syllabus, or explicitly asks you to generate a study roadmap or distribute topics:
-1. Actively analyze who should learn what based on their 'Strengths' and 'Learning Style'.
-2. Provide motivational guidance.
-3. ALWAYS output the actual assignments using this EXACT Markdown fenced block format (the frontend uses this to generate interactive UI cards):
+If the user uploads a syllabus, or explicitly asks you to generate a study roadmap or distribute topics, follow this TWO-STEP process:
 
-\`\`\`assignments
-Title | Assigned To (Exact Name) | Estimated Time | Difficulty (Easy/Medium/Hard)
-Sorting Algorithms | Hari | 2h | Medium
-Time Complexity | Akash | 1h | Hard
+STEP 1: INTENT & CONFIRMATION
+Do NOT immediately assign topics. First, analyze the uploaded material or request, identify the learning components.
+IMPORTANT OVERRIDE: Do NOT output a \`roadmap\` block or a \`chips\` block. You MUST instead output a single JSON block wrapped in triple backticks exactly like this:
+\`\`\`json
+{
+  "type": "distribution_intent",
+  "chapter": "Identified Chapter/Unit Name",
+  "intro_text": "I can help organize your study for [Chapter]. I'll analyze the material and distribute topics based on each member's strengths, learning style, and preferences.\\n\\nShall I create a smart topic distribution for the team?"
+}
 \`\`\`
 
-Rules for \`assignments\` block:
-- Use EXACTLY this header format or pipe-separated lines.
-- Only assign topics to the exact names of the team members listed above.
-- Do NOT output this block unless specifically asked to distribute topics or make a roadmap.
+STEP 2: SMART DISTRIBUTION PROPOSAL
+Only AFTER the group explicitly agrees (e.g., "Yes", "Go ahead", "Assign them"), you must generate the Smart Topic Distribution.
+IMPORTANT OVERRIDE: Do NOT output a \`roadmap\` block. When generating the distribution, you MUST output a JSON block wrapped in triple backticks with "json" as the language.
+The JSON must perfectly match this structure:
 
-Do not dump raw JSON. Keep responses concise unless asked to explain deeply.`;
+\`\`\`json
+{
+  "type": "topic_distribution",
+  "chapter": "Chapter/Topic Name",
+  "assignments": [
+    {
+      "title": "Topic Name",
+      "assigned_to": "Exact Name of Team Member",
+      "estimated_time": "1h 30m",
+      "difficulty": "Medium",
+      "reason": "Brief reason based on their profile score"
+    }
+  ]
+}
+\`\`\`
+
+Rules for the JSON block:
+- Use EXACTLY this JSON structure.
+- Only assign topics to the exact names of the team members listed above.
+- Ensure the JSON is valid and parsable.
+- Provide a brief "reason" why this member is the best match.
+- Do not output this block unless specifically asked to distribute topics AFTER they have agreed.`;
 
           const model = getGroqModel();
           const result = streamText({

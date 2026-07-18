@@ -63,9 +63,12 @@ Keep responses relatively short to maintain a conversational pace. Always end yo
           const result = streamText({
             model,
             system,
-            messages: await convertToModelMessages(messages),
+            messages: messages.map((m: any) => {
+              const text = m.parts?.map((p: any) => p.type === "text" ? p.text : "").join("") || m.content || "";
+              return { role: m.role, content: text };
+            }),
             abortSignal: request.signal,
-            experimental_transform: smoothStream({ delayInMs: 22, chunking: "word" }),
+            experimental_transform: smoothStream({ delayInMs: 10 }),
           });
           
           return result.toUIMessageStreamResponse({
