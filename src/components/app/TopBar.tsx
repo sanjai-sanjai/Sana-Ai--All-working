@@ -5,6 +5,7 @@ import { cn } from "@/lib/utils";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useResolvedAvatar } from "@/hooks/use-resolved-avatar";
+import { useSidebarStore } from "@/store/useSidebarStore";
 
 type Props = {
   title?: ReactNode;
@@ -27,6 +28,7 @@ export function TopBar({ title, subtitle, onMenu, back, right, hideDefaults, cla
     }
   });
   const resolvedAvatarUrl = useResolvedAvatar(profile?.avatar_url ?? null);
+  const { setOpen } = useSidebarStore();
 
   return (
     <header
@@ -48,7 +50,7 @@ export function TopBar({ title, subtitle, onMenu, back, right, hideDefaults, cla
       {!back && (
         <button
           type="button"
-          onClick={onMenu}
+          onClick={onMenu ? onMenu : () => setOpen(true)}
           className="grid h-11 w-11 shrink-0 place-items-center rounded-2xl bg-card shadow-card"
           aria-label="Menu"
         >

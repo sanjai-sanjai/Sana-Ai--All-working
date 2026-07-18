@@ -99,11 +99,20 @@ export function useGroupMembers(groupId: string) {
         
       if (pError) throw pError;
       
+      const { data: progressData, error: progError } = await (supabase as any)
+        .from("progress_tracking")
+        .select("member_id, progress_pct")
+        .eq("group_id", groupId);
+      
+      if (progError) console.error(progError); // non-fatal
+      
       const profileMap = new Map(gProfiles?.map((p: any) => [p.user_id, p]) || []);
+      const progressMap = new Map(progressData?.map((p: any) => [p.member_id, p.progress_pct]) || []);
 
       return members.map((m: any) => ({
         ...m,
-        group_member_profiles: profileMap.get(m.user_id) || null
+        group_member_profiles: profileMap.get(m.user_id) || null,
+        progress_pct: progressMap.get(m.user_id) || 0
       })) as unknown as MemberWithProfile[];
     },
     enabled: !!groupId,

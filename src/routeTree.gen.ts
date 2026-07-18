@@ -21,13 +21,21 @@ import { Route as ApiStudyCoachRouteImport } from './routes/api/study-coach'
 import { Route as ApiOrchestratorActionRouteImport } from './routes/api/orchestrator-action'
 import { Route as ApiGroupChatRouteImport } from './routes/api/group-chat'
 import { Route as ApiChatRouteImport } from './routes/api/chat'
+import { Route as AuthenticatedSettingsRouteImport } from './routes/_authenticated/settings'
+import { Route as AuthenticatedScheduleRouteImport } from './routes/_authenticated/schedule'
 import { Route as AuthenticatedRevisionRouteImport } from './routes/_authenticated/revision'
+import { Route as AuthenticatedResourcesRouteImport } from './routes/_authenticated/resources'
 import { Route as AuthenticatedReminderRouteImport } from './routes/_authenticated/reminder'
 import { Route as AuthenticatedProfileRouteImport } from './routes/_authenticated/profile'
 import { Route as AuthenticatedPowerNapRouteImport } from './routes/_authenticated/power-nap'
 import { Route as AuthenticatedPomodoroRouteImport } from './routes/_authenticated/pomodoro'
 import { Route as AuthenticatedNotificationsRouteImport } from './routes/_authenticated/notifications'
 import { Route as AuthenticatedHomeRouteImport } from './routes/_authenticated/home'
+import { Route as AuthenticatedHelpRouteImport } from './routes/_authenticated/help'
+import { Route as AuthenticatedGoalsRouteImport } from './routes/_authenticated/goals'
+import { Route as AuthenticatedFriendsRouteImport } from './routes/_authenticated/friends'
+import { Route as AuthenticatedFocusRouteImport } from './routes/_authenticated/focus'
+import { Route as AuthenticatedFeedbackRouteImport } from './routes/_authenticated/feedback'
 import { Route as AuthenticatedClassroomRouteImport } from './routes/_authenticated/classroom'
 import { Route as AuthenticatedChatRouteImport } from './routes/_authenticated/chat'
 import { Route as AuthenticatedAnalyticsRouteImport } from './routes/_authenticated/analytics'
@@ -122,9 +130,24 @@ const ApiChatRoute = ApiChatRouteImport.update({
   path: '/api/chat',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AuthenticatedSettingsRoute = AuthenticatedSettingsRouteImport.update({
+  id: '/settings',
+  path: '/settings',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedScheduleRoute = AuthenticatedScheduleRouteImport.update({
+  id: '/schedule',
+  path: '/schedule',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
 const AuthenticatedRevisionRoute = AuthenticatedRevisionRouteImport.update({
   id: '/revision',
   path: '/revision',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedResourcesRoute = AuthenticatedResourcesRouteImport.update({
+  id: '/resources',
+  path: '/resources',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
 const AuthenticatedReminderRoute = AuthenticatedReminderRouteImport.update({
@@ -156,6 +179,31 @@ const AuthenticatedNotificationsRoute =
 const AuthenticatedHomeRoute = AuthenticatedHomeRouteImport.update({
   id: '/home',
   path: '/home',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedHelpRoute = AuthenticatedHelpRouteImport.update({
+  id: '/help',
+  path: '/help',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedGoalsRoute = AuthenticatedGoalsRouteImport.update({
+  id: '/goals',
+  path: '/goals',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedFriendsRoute = AuthenticatedFriendsRouteImport.update({
+  id: '/friends',
+  path: '/friends',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedFocusRoute = AuthenticatedFocusRouteImport.update({
+  id: '/focus',
+  path: '/focus',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedFeedbackRoute = AuthenticatedFeedbackRouteImport.update({
+  id: '/feedback',
+  path: '/feedback',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
 const AuthenticatedClassroomRoute = AuthenticatedClassroomRouteImport.update({
@@ -361,13 +409,21 @@ export interface FileRoutesByFullPath {
   '/analytics': typeof AuthenticatedAnalyticsRoute
   '/chat': typeof AuthenticatedChatRoute
   '/classroom': typeof AuthenticatedClassroomRouteWithChildren
+  '/feedback': typeof AuthenticatedFeedbackRoute
+  '/focus': typeof AuthenticatedFocusRoute
+  '/friends': typeof AuthenticatedFriendsRoute
+  '/goals': typeof AuthenticatedGoalsRoute
+  '/help': typeof AuthenticatedHelpRoute
   '/home': typeof AuthenticatedHomeRoute
   '/notifications': typeof AuthenticatedNotificationsRoute
   '/pomodoro': typeof AuthenticatedPomodoroRoute
   '/power-nap': typeof AuthenticatedPowerNapRoute
   '/profile': typeof AuthenticatedProfileRoute
   '/reminder': typeof AuthenticatedReminderRoute
+  '/resources': typeof AuthenticatedResourcesRoute
   '/revision': typeof AuthenticatedRevisionRouteWithChildren
+  '/schedule': typeof AuthenticatedScheduleRoute
+  '/settings': typeof AuthenticatedSettingsRoute
   '/api/chat': typeof ApiChatRoute
   '/api/group-chat': typeof ApiGroupChatRoute
   '/api/orchestrator-action': typeof ApiOrchestratorActionRoute
@@ -414,12 +470,20 @@ export interface FileRoutesByTo {
   '/ai-calls': typeof AuthenticatedAiCallsRoute
   '/analytics': typeof AuthenticatedAnalyticsRoute
   '/chat': typeof AuthenticatedChatRoute
+  '/feedback': typeof AuthenticatedFeedbackRoute
+  '/focus': typeof AuthenticatedFocusRoute
+  '/friends': typeof AuthenticatedFriendsRoute
+  '/goals': typeof AuthenticatedGoalsRoute
+  '/help': typeof AuthenticatedHelpRoute
   '/home': typeof AuthenticatedHomeRoute
   '/notifications': typeof AuthenticatedNotificationsRoute
   '/pomodoro': typeof AuthenticatedPomodoroRoute
   '/power-nap': typeof AuthenticatedPowerNapRoute
   '/profile': typeof AuthenticatedProfileRoute
   '/reminder': typeof AuthenticatedReminderRoute
+  '/resources': typeof AuthenticatedResourcesRoute
+  '/schedule': typeof AuthenticatedScheduleRoute
+  '/settings': typeof AuthenticatedSettingsRoute
   '/api/chat': typeof ApiChatRoute
   '/api/group-chat': typeof ApiGroupChatRoute
   '/api/orchestrator-action': typeof ApiOrchestratorActionRoute
@@ -469,13 +533,21 @@ export interface FileRoutesById {
   '/_authenticated/analytics': typeof AuthenticatedAnalyticsRoute
   '/_authenticated/chat': typeof AuthenticatedChatRoute
   '/_authenticated/classroom': typeof AuthenticatedClassroomRouteWithChildren
+  '/_authenticated/feedback': typeof AuthenticatedFeedbackRoute
+  '/_authenticated/focus': typeof AuthenticatedFocusRoute
+  '/_authenticated/friends': typeof AuthenticatedFriendsRoute
+  '/_authenticated/goals': typeof AuthenticatedGoalsRoute
+  '/_authenticated/help': typeof AuthenticatedHelpRoute
   '/_authenticated/home': typeof AuthenticatedHomeRoute
   '/_authenticated/notifications': typeof AuthenticatedNotificationsRoute
   '/_authenticated/pomodoro': typeof AuthenticatedPomodoroRoute
   '/_authenticated/power-nap': typeof AuthenticatedPowerNapRoute
   '/_authenticated/profile': typeof AuthenticatedProfileRoute
   '/_authenticated/reminder': typeof AuthenticatedReminderRoute
+  '/_authenticated/resources': typeof AuthenticatedResourcesRoute
   '/_authenticated/revision': typeof AuthenticatedRevisionRouteWithChildren
+  '/_authenticated/schedule': typeof AuthenticatedScheduleRoute
+  '/_authenticated/settings': typeof AuthenticatedSettingsRoute
   '/api/chat': typeof ApiChatRoute
   '/api/group-chat': typeof ApiGroupChatRoute
   '/api/orchestrator-action': typeof ApiOrchestratorActionRoute
@@ -525,13 +597,21 @@ export interface FileRouteTypes {
     | '/analytics'
     | '/chat'
     | '/classroom'
+    | '/feedback'
+    | '/focus'
+    | '/friends'
+    | '/goals'
+    | '/help'
     | '/home'
     | '/notifications'
     | '/pomodoro'
     | '/power-nap'
     | '/profile'
     | '/reminder'
+    | '/resources'
     | '/revision'
+    | '/schedule'
+    | '/settings'
     | '/api/chat'
     | '/api/group-chat'
     | '/api/orchestrator-action'
@@ -578,12 +658,20 @@ export interface FileRouteTypes {
     | '/ai-calls'
     | '/analytics'
     | '/chat'
+    | '/feedback'
+    | '/focus'
+    | '/friends'
+    | '/goals'
+    | '/help'
     | '/home'
     | '/notifications'
     | '/pomodoro'
     | '/power-nap'
     | '/profile'
     | '/reminder'
+    | '/resources'
+    | '/schedule'
+    | '/settings'
     | '/api/chat'
     | '/api/group-chat'
     | '/api/orchestrator-action'
@@ -632,13 +720,21 @@ export interface FileRouteTypes {
     | '/_authenticated/analytics'
     | '/_authenticated/chat'
     | '/_authenticated/classroom'
+    | '/_authenticated/feedback'
+    | '/_authenticated/focus'
+    | '/_authenticated/friends'
+    | '/_authenticated/goals'
+    | '/_authenticated/help'
     | '/_authenticated/home'
     | '/_authenticated/notifications'
     | '/_authenticated/pomodoro'
     | '/_authenticated/power-nap'
     | '/_authenticated/profile'
     | '/_authenticated/reminder'
+    | '/_authenticated/resources'
     | '/_authenticated/revision'
+    | '/_authenticated/schedule'
+    | '/_authenticated/settings'
     | '/api/chat'
     | '/api/group-chat'
     | '/api/orchestrator-action'
@@ -790,11 +886,32 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiChatRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/_authenticated/settings': {
+      id: '/_authenticated/settings'
+      path: '/settings'
+      fullPath: '/settings'
+      preLoaderRoute: typeof AuthenticatedSettingsRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/schedule': {
+      id: '/_authenticated/schedule'
+      path: '/schedule'
+      fullPath: '/schedule'
+      preLoaderRoute: typeof AuthenticatedScheduleRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/revision': {
       id: '/_authenticated/revision'
       path: '/revision'
       fullPath: '/revision'
       preLoaderRoute: typeof AuthenticatedRevisionRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/resources': {
+      id: '/_authenticated/resources'
+      path: '/resources'
+      fullPath: '/resources'
+      preLoaderRoute: typeof AuthenticatedResourcesRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/reminder': {
@@ -837,6 +954,41 @@ declare module '@tanstack/react-router' {
       path: '/home'
       fullPath: '/home'
       preLoaderRoute: typeof AuthenticatedHomeRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/help': {
+      id: '/_authenticated/help'
+      path: '/help'
+      fullPath: '/help'
+      preLoaderRoute: typeof AuthenticatedHelpRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/goals': {
+      id: '/_authenticated/goals'
+      path: '/goals'
+      fullPath: '/goals'
+      preLoaderRoute: typeof AuthenticatedGoalsRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/friends': {
+      id: '/_authenticated/friends'
+      path: '/friends'
+      fullPath: '/friends'
+      preLoaderRoute: typeof AuthenticatedFriendsRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/focus': {
+      id: '/_authenticated/focus'
+      path: '/focus'
+      fullPath: '/focus'
+      preLoaderRoute: typeof AuthenticatedFocusRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/feedback': {
+      id: '/_authenticated/feedback'
+      path: '/feedback'
+      fullPath: '/feedback'
+      preLoaderRoute: typeof AuthenticatedFeedbackRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/classroom': {
@@ -1168,13 +1320,21 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedAnalyticsRoute: typeof AuthenticatedAnalyticsRoute
   AuthenticatedChatRoute: typeof AuthenticatedChatRoute
   AuthenticatedClassroomRoute: typeof AuthenticatedClassroomRouteWithChildren
+  AuthenticatedFeedbackRoute: typeof AuthenticatedFeedbackRoute
+  AuthenticatedFocusRoute: typeof AuthenticatedFocusRoute
+  AuthenticatedFriendsRoute: typeof AuthenticatedFriendsRoute
+  AuthenticatedGoalsRoute: typeof AuthenticatedGoalsRoute
+  AuthenticatedHelpRoute: typeof AuthenticatedHelpRoute
   AuthenticatedHomeRoute: typeof AuthenticatedHomeRoute
   AuthenticatedNotificationsRoute: typeof AuthenticatedNotificationsRoute
   AuthenticatedPomodoroRoute: typeof AuthenticatedPomodoroRoute
   AuthenticatedPowerNapRoute: typeof AuthenticatedPowerNapRoute
   AuthenticatedProfileRoute: typeof AuthenticatedProfileRoute
   AuthenticatedReminderRoute: typeof AuthenticatedReminderRoute
+  AuthenticatedResourcesRoute: typeof AuthenticatedResourcesRoute
   AuthenticatedRevisionRoute: typeof AuthenticatedRevisionRouteWithChildren
+  AuthenticatedScheduleRoute: typeof AuthenticatedScheduleRoute
+  AuthenticatedSettingsRoute: typeof AuthenticatedSettingsRoute
   AuthenticatedStudyTogetherGroupIdRoute: typeof AuthenticatedStudyTogetherGroupIdRoute
   AuthenticatedStudyTogetherCreateRoute: typeof AuthenticatedStudyTogetherCreateRoute
   AuthenticatedVoiceCallNewRoute: typeof AuthenticatedVoiceCallNewRoute
@@ -1187,13 +1347,21 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedAnalyticsRoute: AuthenticatedAnalyticsRoute,
   AuthenticatedChatRoute: AuthenticatedChatRoute,
   AuthenticatedClassroomRoute: AuthenticatedClassroomRouteWithChildren,
+  AuthenticatedFeedbackRoute: AuthenticatedFeedbackRoute,
+  AuthenticatedFocusRoute: AuthenticatedFocusRoute,
+  AuthenticatedFriendsRoute: AuthenticatedFriendsRoute,
+  AuthenticatedGoalsRoute: AuthenticatedGoalsRoute,
+  AuthenticatedHelpRoute: AuthenticatedHelpRoute,
   AuthenticatedHomeRoute: AuthenticatedHomeRoute,
   AuthenticatedNotificationsRoute: AuthenticatedNotificationsRoute,
   AuthenticatedPomodoroRoute: AuthenticatedPomodoroRoute,
   AuthenticatedPowerNapRoute: AuthenticatedPowerNapRoute,
   AuthenticatedProfileRoute: AuthenticatedProfileRoute,
   AuthenticatedReminderRoute: AuthenticatedReminderRoute,
+  AuthenticatedResourcesRoute: AuthenticatedResourcesRoute,
   AuthenticatedRevisionRoute: AuthenticatedRevisionRouteWithChildren,
+  AuthenticatedScheduleRoute: AuthenticatedScheduleRoute,
+  AuthenticatedSettingsRoute: AuthenticatedSettingsRoute,
   AuthenticatedStudyTogetherGroupIdRoute:
     AuthenticatedStudyTogetherGroupIdRoute,
   AuthenticatedStudyTogetherCreateRoute: AuthenticatedStudyTogetherCreateRoute,

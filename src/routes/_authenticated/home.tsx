@@ -184,7 +184,7 @@ function HomePage() {
             </div>
 
             {/* Focus Score — horizontal bar */}
-            <div className="mt-3 flex items-center gap-3 rounded-2xl border border-border/70 bg-background/70 p-3 backdrop-blur">
+            <Link to="/focus" className="mt-3 flex items-center gap-3 rounded-2xl border border-border/70 bg-background/70 p-3 backdrop-blur transition-all active:scale-[0.98] hover:bg-background/80 block">
               <div className="shrink-0">
                 <ProgressRing value={92} size={54} stroke={6} label="92" />
               </div>
@@ -198,7 +198,7 @@ function HomePage() {
               <div className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-success/15 text-success">
                 <ArrowUpRight className="h-4 w-4" />
               </div>
-            </div>
+            </Link>
           </div>
         </div>
       </section>
@@ -253,9 +253,6 @@ function HomePage() {
           </button>
         </div>
 
-        {/* Study Together Phase 2 Entry */}
-        <StudyTogetherHomeCard />
-
         {/* Quick Actions */}
         <div>
           <div className="mb-2 flex items-center justify-between px-1">
@@ -271,11 +268,15 @@ function HomePage() {
           </div>
         </div>
 
+        {/* Upcoming AI Call */}
         <UpcomingAICall
           reminders={reminders}
           onDone={(id) => doneMut.mutate(id)}
           onDelete={(id) => deleteMut.mutate(id)}
         />
+
+        {/* Study Together Phase 2 Entry */}
+        <StudyTogetherHomeCard />
       </section>
 
       {/* Study Stats */}

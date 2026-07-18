@@ -1,7 +1,10 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { cn } from "@/lib/utils";
 import { Bot, Map, FolderOpen, LineChart, CheckCircle2, Circle, Edit2, Plus, PenTool, Upload, Bell, Mic, Timer } from "lucide-react";
 import { motion } from "framer-motion";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/use-auth";
+import { useParams } from "@tanstack/react-router";
 
 const TAB_OPTIONS = [
   { id: "ai_study", label: "AI Study", icon: Bot },
@@ -12,6 +15,59 @@ const TAB_OPTIONS = [
 
 export function StudyTogetherRightSidebar() {
   const [activeTab, setActiveTab] = useState("ai_study");
+  const { user } = useAuth();
+  const { groupId } = useParams({ strict: false });
+
+  const [roadmapSteps, setRoadmapSteps] = useState<any[]>([]);
+  const [resources, setResources] = useState<any[]>([]);
+
+  useEffect(() => {
+    if (!groupId || !user?.id) return;
+
+    const fetchRoadmap = async () => {
+      // Find the roadmap for the current user in this group
+      const { data } = await supabase.from("study_roadmaps")
+        .select("*")
+        .eq("group_id", groupId)
+        .eq("member_id", user.id)
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .single();
+      
+      if (data && data.content && data.content.steps) {
+        setRoadmapSteps(data.content.steps);
+      }
+    };
+
+    const fetchResources = async () => {
+      const { data } = await supabase.from("group_resources")
+        .select("*, profiles!uploader_id(display_name)")
+        .eq("group_id", groupId)
+        .order("created_at", { ascending: false });
+      
+      if (data) {
+        setResources(data);
+      }
+    };
+
+    fetchRoadmap();
+    fetchResources();
+
+    const roadmapsChannel = supabase.channel(`roadmaps-${groupId}`)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'study_roadmaps', filter: `group_id=eq.${groupId}` }, () => {
+        fetchRoadmap();
+      }).subscribe();
+
+    const resourcesChannel = supabase.channel(`resources-${groupId}`)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'group_resources', filter: `group_id=eq.${groupId}` }, () => {
+        fetchResources();
+      }).subscribe();
+
+    return () => {
+      supabase.removeChannel(roadmapsChannel);
+      supabase.removeChannel(resourcesChannel);
+    };
+  }, [groupId, user?.id]);
 
   return (
     <div className="hidden md:flex flex-col w-[380px] lg:w-[420px] bg-[#f8f9fa] border-l border-gray-200/60 overflow-y-auto hide-scrollbar pb-10">
@@ -131,53 +187,35 @@ export function StudyTogetherRightSidebar() {
                 </div>
                 
                 <div className="relative pl-3.5 space-y-7 before:absolute before:inset-y-2 before:left-[21px] before:w-px before:bg-gray-200">
-                  {/* Step 1 */}
-                  <div className="relative flex items-start gap-4">
-                    <div className="grid h-6 w-6 shrink-0 place-items-center rounded-full bg-[#6366f1] text-white text-[12px] font-bold shadow-[0_0_0_4px_#f8f9fa] z-10">1</div>
-                    <div className="flex-1 min-w-0 pt-0.5">
-                      <div className="flex items-start justify-between gap-2">
-                        <h4 className="text-[15px] font-bold text-gray-900 leading-tight">Foundations</h4>
-                        <span className="rounded-full bg-[#ecfdf5] px-2 py-0.5 text-[10px] font-bold text-[#10b981] border border-[#d1fae5]">Completed</span>
+                  {roadmapSteps.length > 0 ? roadmapSteps.map((step, idx) => (
+                    <div key={idx} className="relative flex items-start gap-4">
+                      <div className={cn(
+                        "grid h-6 w-6 shrink-0 place-items-center rounded-full text-[12px] font-bold shadow-[0_0_0_4px_#f8f9fa] z-10",
+                        step.status === 'completed' ? "bg-[#6366f1] text-white" :
+                        step.status === 'in_progress' ? "bg-[#f3f0ff] text-[#6366f1] border-2 border-white ring-1 ring-[#e0e7ff]" :
+                        "bg-white text-gray-400 border border-gray-200"
+                      )}>
+                        {idx + 1}
                       </div>
-                      <p className="text-[13px] font-medium text-gray-500 mt-1">Arrays, Linked List, Stack, Queue</p>
-                    </div>
-                  </div>
-                  
-                  {/* Step 2 */}
-                  <div className="relative flex items-start gap-4">
-                    <div className="grid h-6 w-6 shrink-0 place-items-center rounded-full bg-[#f3f0ff] text-[#6366f1] border-2 border-white text-[12px] font-bold shadow-[0_0_0_4px_#f8f9fa] ring-1 ring-[#e0e7ff] z-10">2</div>
-                    <div className="flex-1 min-w-0 pt-0.5">
-                      <div className="flex items-start justify-between gap-2">
-                        <h4 className="text-[15px] font-bold text-gray-900 leading-tight">Trees</h4>
-                        <span className="rounded-full bg-[#f3f0ff] px-2 py-0.5 text-[10px] font-bold text-[#6366f1] border border-[#e0e7ff]">In Progress</span>
+                      <div className="flex-1 min-w-0 pt-0.5">
+                        <div className="flex items-start justify-between gap-2">
+                          <h4 className={cn("text-[15px] font-bold leading-tight", step.status === 'pending' ? "text-gray-400" : "text-gray-900")}>
+                            {step.title}
+                          </h4>
+                          <span className={cn(
+                            "rounded-full px-2 py-0.5 text-[10px] font-bold border",
+                            step.status === 'completed' ? "bg-[#ecfdf5] text-[#10b981] border-[#d1fae5]" :
+                            step.status === 'in_progress' ? "bg-[#f3f0ff] text-[#6366f1] border-[#e0e7ff]" :
+                            "bg-white text-gray-400 border-gray-200"
+                          )}>
+                            {step.status === 'completed' ? "Completed" : step.status === 'in_progress' ? "In Progress" : "Pending"}
+                          </span>
+                        </div>
                       </div>
-                      <p className="text-[13px] font-medium text-gray-500 mt-1">Binary Trees, BST, Traversals</p>
                     </div>
-                  </div>
-                  
-                  {/* Step 3 */}
-                  <div className="relative flex items-start gap-4">
-                    <div className="grid h-6 w-6 shrink-0 place-items-center rounded-full bg-white text-gray-400 border border-gray-200 text-[12px] font-bold shadow-[0_0_0_4px_#f8f9fa] z-10">3</div>
-                    <div className="flex-1 min-w-0 pt-0.5">
-                      <div className="flex items-start justify-between gap-2">
-                        <h4 className="text-[15px] font-bold text-gray-400 leading-tight">Graphs</h4>
-                        <span className="rounded-full bg-white px-2 py-0.5 text-[10px] font-bold text-gray-400 border border-gray-200">Pending</span>
-                      </div>
-                      <p className="text-[13px] font-medium text-gray-400/80 mt-1">BFS, DFS, Representations</p>
-                    </div>
-                  </div>
-
-                  {/* Step 4 */}
-                  <div className="relative flex items-start gap-4">
-                    <div className="grid h-6 w-6 shrink-0 place-items-center rounded-full bg-white text-gray-400 border border-gray-200 text-[12px] font-bold shadow-[0_0_0_4px_#f8f9fa] z-10">4</div>
-                    <div className="flex-1 min-w-0 pt-0.5">
-                      <div className="flex items-start justify-between gap-2">
-                        <h4 className="text-[15px] font-bold text-gray-400 leading-tight">Advanced Topics</h4>
-                        <span className="rounded-full bg-white px-2 py-0.5 text-[10px] font-bold text-gray-400 border border-gray-200">Pending</span>
-                      </div>
-                      <p className="text-[13px] font-medium text-gray-400/80 mt-1">Heap, Hashing, Tries, DP on DS</p>
-                    </div>
-                  </div>
+                  )) : (
+                    <p className="text-[13px] text-gray-500 italic">No roadmap generated yet. AI will create one once you approve the study plan.</p>
+                  )}
                 </div>
               </section>
 
@@ -221,61 +259,34 @@ export function StudyTogetherRightSidebar() {
                 </div>
 
                 <div className="space-y-3 mb-5">
-                  {/* Resource 1 */}
-                  <div className="flex items-center gap-3 p-3 rounded-[16px] bg-white border border-gray-100 shadow-[0_2px_8px_rgba(0,0,0,0.02)] group hover:border-red-200 transition-colors cursor-pointer">
-                    <div className="h-12 w-12 shrink-0 rounded-[14px] bg-red-50 text-red-500 grid place-items-center group-hover:bg-red-100 transition-colors">
-                      <span className="font-bold text-[12px]">PDF</span>
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-[14.5px] font-bold text-gray-900 truncate">Binary Trees – Full Notes.pdf</p>
-                      <div className="flex items-center justify-between mt-1">
-                        <span className="text-[12.5px] font-semibold text-gray-500">2.1 MB • Sanjai</span>
-                        <span className="text-[12px] font-semibold text-gray-400">Today</span>
-                      </div>
-                    </div>
-                  </div>
-                  
-                  {/* Resource 2 */}
-                  <div className="flex items-center gap-3 p-3 rounded-[16px] bg-white border border-gray-100 shadow-[0_2px_8px_rgba(0,0,0,0.02)] group hover:border-blue-200 transition-colors cursor-pointer">
-                    <div className="h-12 w-12 shrink-0 rounded-[14px] bg-blue-50 text-blue-500 grid place-items-center group-hover:bg-blue-100 transition-colors">
-                      <span className="font-bold text-[12px]">DOC</span>
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-[14.5px] font-bold text-gray-900 truncate">DFS vs BFS Explanation.docx</p>
-                      <div className="flex items-center justify-between mt-1">
-                        <span className="text-[12.5px] font-semibold text-gray-500">1.3 MB • Akash</span>
-                        <span className="text-[12px] font-semibold text-gray-400">Today</span>
-                      </div>
-                    </div>
-                  </div>
+                  {resources.length > 0 ? resources.map((r, i) => {
+                    const ext = r.file_type?.toLowerCase() || 'txt';
+                    const colors: any = {
+                      pdf: { bg: 'bg-red-50', text: 'text-red-500', hover: 'group-hover:bg-red-100', bHover: 'hover:border-red-200' },
+                      doc: { bg: 'bg-blue-50', text: 'text-blue-500', hover: 'group-hover:bg-blue-100', bHover: 'hover:border-blue-200' },
+                      md:  { bg: 'bg-orange-50', text: 'text-orange-500', hover: 'group-hover:bg-orange-100', bHover: 'hover:border-orange-200' },
+                      txt: { bg: 'bg-gray-50', text: 'text-gray-500', hover: 'group-hover:bg-gray-100', bHover: 'hover:border-gray-200' }
+                    };
+                    const c = colors[ext] || colors.txt;
 
-                  {/* Resource 3 */}
-                  <div className="flex items-center gap-3 p-3 rounded-[16px] bg-white border border-gray-100 shadow-[0_2px_8px_rgba(0,0,0,0.02)] group hover:border-orange-200 transition-colors cursor-pointer">
-                    <div className="h-12 w-12 shrink-0 rounded-[14px] bg-orange-50 text-orange-500 grid place-items-center group-hover:bg-orange-100 transition-colors">
-                      <span className="font-bold text-[12px]">{"</>"}</span>
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-[14.5px] font-bold text-gray-900 truncate">Tree Traversal Code (C++).cpp</p>
-                      <div className="flex items-center justify-between mt-1">
-                        <span className="text-[12.5px] font-semibold text-gray-500">4.8 KB • Hari</span>
-                        <span className="text-[12px] font-semibold text-gray-400">Yesterday</span>
+                    return (
+                      <div key={r.id || i} className={cn("flex items-center gap-3 p-3 rounded-[16px] bg-white border border-gray-100 shadow-[0_2px_8px_rgba(0,0,0,0.02)] group transition-colors cursor-pointer", c.bHover)}>
+                        <div className={cn("h-12 w-12 shrink-0 rounded-[14px] grid place-items-center transition-colors", c.bg, c.text, c.hover)}>
+                          <span className="font-bold text-[12px] uppercase">{ext}</span>
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-[14.5px] font-bold text-gray-900 truncate">{r.title}</p>
+                          <div className="flex items-center justify-between mt-1">
+                            <span className="text-[12.5px] font-semibold text-gray-500">
+                              {r.file_size ? (r.file_size / 1024).toFixed(1) + ' KB' : 'Unknown'} • {r.profiles?.display_name || 'System'}
+                            </span>
+                          </div>
+                        </div>
                       </div>
-                    </div>
-                  </div>
-                  
-                  {/* Resource 4 */}
-                  <div className="flex items-center gap-3 p-3 rounded-[16px] bg-white border border-gray-100 shadow-[0_2px_8px_rgba(0,0,0,0.02)] group hover:border-emerald-200 transition-colors cursor-pointer">
-                    <div className="h-12 w-12 shrink-0 rounded-[14px] bg-emerald-50 text-emerald-500 grid place-items-center group-hover:bg-emerald-100 transition-colors">
-                      <span className="font-bold text-[12px]">IMG</span>
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-[14.5px] font-bold text-gray-900 truncate">Binary Tree Diagram.png</p>
-                      <div className="flex items-center justify-between mt-1">
-                        <span className="text-[12.5px] font-semibold text-gray-500">220 KB • Naveen</span>
-                        <span className="text-[12px] font-semibold text-gray-400">Yesterday</span>
-                      </div>
-                    </div>
-                  </div>
+                    );
+                  }) : (
+                    <p className="text-[13px] text-gray-500 italic">No resources shared yet. Create notes or upload files to share them here.</p>
+                  )}
                 </div>
 
                 <div className="grid grid-cols-2 gap-3 mb-5">

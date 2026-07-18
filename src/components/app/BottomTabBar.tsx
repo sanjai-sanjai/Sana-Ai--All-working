@@ -1,13 +1,13 @@
 import { Link, useLocation } from "@tanstack/react-router";
-import { Home, MessageCircle, BookOpen, Timer, BarChart3 } from "lucide-react";
+import { Home, MessageCircle, BookOpen, Timer, Users } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const items = [
   { to: "/home", label: "Home", icon: Home },
   { to: "/chat", label: "Chat", icon: MessageCircle },
-  { to: "/revision", label: "Revision", icon: BookOpen },
-  { to: "/pomodoro", label: "Pomodoro", icon: Timer },
-  { to: "/analytics", label: "Analytics", icon: BarChart3 },
+  { to: "/study-together", label: "Study Together", icon: Users },
+  { to: "/pomodoro", label: "Pomodoro Technique", icon: Timer },
+  { to: "/revision", label: "Revision Set", icon: BookOpen },
 ];
 
 export function BottomTabBar() {
@@ -37,7 +37,7 @@ export function BottomTabBar() {
                 >
                   <Icon className={cn("h-5 w-5", active && "fill-primary/15")} strokeWidth={active ? 2.4 : 2} />
                 </span>
-                <span>{label}</span>
+                <span className="text-center leading-tight px-0.5">{label}</span>
               </Link>
             </li>
           );

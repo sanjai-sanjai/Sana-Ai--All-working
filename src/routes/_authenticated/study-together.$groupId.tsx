@@ -199,11 +199,41 @@ function StudyGroupDetails() {
           status: 'pending'
         }));
 
-        const { error } = await (supabase as any).from("study_assignments").insert(inserts);
+        // Simple approach: Delete existing pending assignments for this group and insert new ones
+        await (supabase as any).from("study_assignments").delete().eq("group_id", groupId).eq("status", "pending");
+
+        const { data: insertedAssignments, error } = await (supabase as any).from("study_assignments").insert(inserts).select();
         if (error) throw error;
+
+        // Generate dummy roadmaps (or placeholders) for each assignment, as required
+        if (insertedAssignments) {
+           const roadmaps = insertedAssignments.map((a: any) => ({
+             assignment_id: a.id,
+             group_id: groupId,
+             member_id: a.member_id,
+             content: {
+               steps: [
+                 { title: "Introduction", status: "pending" },
+                 { title: "Concept", status: "pending" },
+                 { title: "Algorithm", status: "pending" },
+                 { title: "Flowchart", status: "pending" },
+                 { title: "Worked Example", status: "pending" },
+                 { title: "Practice Problems", status: "pending" },
+                 { title: "Revision", status: "pending" },
+                 { title: "Quiz", status: "pending" },
+                 { title: "Summary", status: "pending" }
+               ]
+             }
+           }));
+           await (supabase as any).from("study_roadmaps").insert(roadmaps);
+        }
 
         toast.success("Study plan approved!", { id: toastId });
         
+        // Broadcast realtime update for React Query
+        queryClient.invalidateQueries({ queryKey: ["study_groups"] });
+
+        // Update the AI chat message card immediately so everyone sees the new layout
         const approvedData = {
           type: "plan_approved",
           assignments: payload.assignments
@@ -219,6 +249,14 @@ function StudyGroupDetails() {
         
         if (updateError) throw updateError;
         
+        // Insert Success AI message
+        await (supabase as any).from("study_group_messages").insert({
+          group_id: groupId,
+          user_id: null,
+          content: "Smart Study Plan Approved.\nEveryone's personalized learning workspace is now ready.\nEach member can begin learning from their assigned topic.",
+          message_type: 'text'
+        });
+
         // Optimistically update the UI so it transforms instantly
         setDbMessages(prev => prev.map(m => m.id === payload.messageId ? {
           ...m,
@@ -247,27 +285,61 @@ function StudyGroupDetails() {
   };
 
   const handleSaveReassigned = async (newAssignments: any[]) => {
-    if (!reassignData) return;
+    if (!reassignData || !groupId || !user?.id) return;
     const { messageId, data } = reassignData;
+    const toastId = toast.loading("Saving assignments...");
     
-    // We update the original AI message with the newly rearranged assignments
-    const updatedData = {
-      ...data,
-      assignments: newAssignments
-    };
+    try {
+      // 1. Update the AI chat message card immediately so everyone sees the new layout
+      const updatedData = { ...data, assignments: newAssignments };
+      const newContent = "```json\n" + JSON.stringify(updatedData, null, 2) + "\n```";
 
-    const newContent = "```json\n" + JSON.stringify(updatedData, null, 2) + "\n```";
+      const { error: msgError } = await (supabase as any)
+        .from("study_group_messages")
+        .update({ content: newContent })
+        .eq("id", messageId);
+      
+      if (msgError) throw msgError;
 
-    const { error } = await (supabase as any)
-      .from("study_group_messages")
-      .update({ content: newContent })
-      .eq("id", messageId);
+      // 2. If assignments are already pending/active in study_assignments, update them
+      // However, usually "reassign" happens before "approve_plan". If so, just updating the chat card is enough.
+      // But based on requirements: "Update study_assignments table, Update assignment history, Broadcast realtime event"
+      
+      // Let's assume we do a bulk upsert based on assignment topics for this group.
+      const inserts = newAssignments.map((a: any) => {
+        const member = members?.find((m: any) => m.profiles?.display_name?.trim().toLowerCase() === a.assigned_to?.trim().toLowerCase() || m.profiles?.username?.trim().toLowerCase() === a.assigned_to?.trim().toLowerCase());
+        return {
+          group_id: groupId,
+          member_id: member?.user_id,
+          topic: a.title,
+          estimated_duration: a.estimated_time,
+          reason: a.reason,
+          assigned_by_ai: true,
+          status: 'pending'
+        };
+      });
 
-    if (error) {
-      toast.error("Failed to save reassignments.");
-    } else {
-      toast.success("Topics reassigned successfully.");
+      // Simple approach: Delete existing pending assignments for this group and insert new ones
+      await (supabase as any).from("study_assignments").delete().eq("group_id", groupId).eq("status", "pending");
+      const { data: insertedAssignments, error: assignError } = await (supabase as any).from("study_assignments").insert(inserts).select();
+      
+      if (assignError) throw assignError;
+
+      // Update history
+      if (insertedAssignments) {
+        await (supabase as any).from("assignment_history").insert(insertedAssignments.map((a: any) => ({
+          assignment_id: a.id,
+          changed_by: user.id,
+          action: 'reassigned',
+          details: { new_member: a.member_id }
+        })));
+      }
+
+      toast.success("Topics reassigned successfully.", { id: toastId });
+      queryClient.invalidateQueries({ queryKey: ["study_groups"] });
       setReassignData(null);
+    } catch (e: any) {
+      toast.error("Failed to save reassignments: " + e.message, { id: toastId });
     }
   };
 
@@ -427,11 +499,12 @@ function StudyGroupDetails() {
           }];
         });
       })
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'study_group_topics', filter: `group_id=eq.${groupId}` }, () => {
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'study_assignments', filter: `group_id=eq.${groupId}` }, () => {
          queryClient.invalidateQueries({ queryKey: ["study_groups"] });
+         queryClient.invalidateQueries({ queryKey: ["group-members"] });
       })
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'study_group_resources', filter: `group_id=eq.${groupId}` }, () => {
-         queryClient.invalidateQueries({ queryKey: ["study_groups"] });
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'group_resources', filter: `group_id=eq.${groupId}` }, () => {
+         queryClient.invalidateQueries({ queryKey: ["group-resources"] });
       })
       .on('postgres_changes', { event: '*', schema: 'public', table: 'study_group_meets', filter: `group_id=eq.${groupId}` }, (payload) => {
         const meet = payload.new as any;
@@ -468,7 +541,8 @@ function StudyGroupDetails() {
     // Debounced AI Coach Trigger
     let timeoutId: NodeJS.Timeout;
     const progressChannel = supabase.channel(`progress-${groupId}`)
-      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'study_group_topics', filter: `group_id=eq.${groupId}` }, () => {
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'progress_tracking', filter: `group_id=eq.${groupId}` }, () => {
+        queryClient.invalidateQueries({ queryKey: ["group-members"] });
         clearTimeout(timeoutId);
         timeoutId = setTimeout(() => { refreshAiCoach(); }, 8000); // 8s debounce
       })

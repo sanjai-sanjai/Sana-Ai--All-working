@@ -1,6 +1,7 @@
 import { useLocation } from "@tanstack/react-router";
 import type { ReactNode } from "react";
 import { BottomTabBar } from "./BottomTabBar";
+import { NavigationDrawer } from "./NavigationDrawer";
 
 /**
  * Mobile-first native-feeling app shell.
@@ -24,7 +25,7 @@ export function AppShell({ children }: { children: ReactNode }) {
       */}
       <div
         className={[
-          "mx-auto flex w-full flex-col bg-background",
+          "relative mx-auto flex w-full flex-col bg-background overflow-hidden",
           // Mobile: full-bleed, safe-area aware
           "min-h-[100dvh] max-w-[430px] pb-[env(safe-area-inset-bottom)]",
           // Tablet portrait: framed
@@ -35,6 +36,7 @@ export function AppShell({ children }: { children: ReactNode }) {
           "xl:max-w-[456px]",
         ].join(" ")}
       >
+        <NavigationDrawer />
         <main className="no-scrollbar flex-1 overflow-y-auto pb-2">{children}</main>
         {!hideBottomNav && <BottomTabBar />}
       </div>
