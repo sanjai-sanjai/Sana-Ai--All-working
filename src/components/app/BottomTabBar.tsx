@@ -14,7 +14,7 @@ export function BottomTabBar() {
   const loc = useLocation();
   return (
     <nav
-      className="pointer-events-auto sticky bottom-0 left-0 right-0 z-30 border-t border-border/60 bg-background/95 backdrop-blur-xl"
+      className="pointer-events-auto absolute bottom-0 left-0 right-0 z-50 border-t border-border/60 bg-background/95 backdrop-blur-xl w-full"
       style={{ paddingBottom: "max(env(safe-area-inset-bottom), 0.25rem)" }}
     >
       <ul className="mx-auto grid max-w-md grid-cols-5 px-2 pt-2">

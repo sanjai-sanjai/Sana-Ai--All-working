@@ -141,7 +141,7 @@ function StudyTogetherScreen() {
   }, [user?.id, queryClient]);
 
   return (
-    <div className="min-h-svh bg-[#FAFAFC] pb-32 font-sans overflow-x-hidden relative">
+    <div className="h-full bg-[#FAFAFC] pb-6 font-sans overflow-x-hidden relative">
       {/* Header */}
       <div className="flex items-start justify-between px-5 pt-10 pb-4">
         <div>

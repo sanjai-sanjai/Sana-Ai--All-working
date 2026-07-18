@@ -14,7 +14,7 @@ export function AppShell({ children }: { children: ReactNode }) {
   const hideBottomNav = loc.pathname.includes("/study-together");
 
   return (
-    <div className="min-h-[100dvh] w-full bg-gradient-to-br from-lavender/60 via-background to-background md:from-lavender md:via-background md:to-lavender/60">
+    <div className="h-[100dvh] overflow-hidden w-full bg-gradient-to-br from-lavender/60 via-background to-background md:from-lavender md:via-background md:to-lavender/60">
       {/*
         Responsive phone-frame shell:
         - <=430px  (iPhone / Android phones): fills the viewport, no frame.
@@ -27,17 +27,19 @@ export function AppShell({ children }: { children: ReactNode }) {
         className={[
           "relative mx-auto flex w-full flex-col bg-background overflow-hidden",
           // Mobile: full-bleed, safe-area aware
-          "min-h-[100dvh] max-w-[430px] pb-[env(safe-area-inset-bottom)]",
+          "h-[100dvh] max-w-[430px]",
           // Tablet portrait: framed
-          "md:my-6 md:min-h-[calc(100dvh-3rem)] md:max-w-[440px] md:overflow-hidden md:rounded-[40px] md:border md:border-border/60 md:shadow-card",
+          "md:my-6 md:h-[calc(100dvh-3rem)] md:max-w-[440px] md:overflow-hidden md:rounded-[40px] md:border md:border-border/60 md:shadow-card",
           // Desktop / iPad landscape: slightly wider frame + glow
-          "lg:my-10 lg:min-h-[calc(100dvh-5rem)] lg:max-w-[448px] lg:rounded-[44px] lg:shadow-glow",
+          "lg:my-10 lg:h-[calc(100dvh-5rem)] lg:max-w-[448px] lg:rounded-[44px] lg:shadow-glow",
           // XL screens: keep frame, don't stretch
           "xl:max-w-[456px]",
         ].join(" ")}
       >
         <NavigationDrawer />
-        <main className="no-scrollbar flex-1 overflow-y-auto pb-2">{children}</main>
+        <main className={["no-scrollbar flex-1 overflow-y-auto w-full relative", !hideBottomNav ? "pb-[calc(70px+env(safe-area-inset-bottom))]" : ""].join(" ")}>
+          {children}
+        </main>
         {!hideBottomNav && <BottomTabBar />}
       </div>
     </div>

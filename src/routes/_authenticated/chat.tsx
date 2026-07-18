@@ -583,7 +583,7 @@ function ChatPage() {
   const streamingAssistant = status === "streaming" && lastMsg?.role === "assistant";
 
   return (
-    <div className="relative flex h-[calc(100svh-64px)] min-h-0 flex-col md:h-[calc(100svh-3rem-64px)]">
+    <div className="relative flex h-full min-h-0 flex-col">
       {/* hidden file inputs */}
       <input ref={pdfInputRef} type="file" accept="application/pdf" className="hidden"
              onChange={(e) => { const f = e.target.files?.[0]; if (f) uploadFile(f, "pdf"); e.currentTarget.value = ""; }} />

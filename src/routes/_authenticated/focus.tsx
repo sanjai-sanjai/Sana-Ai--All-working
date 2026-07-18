@@ -137,7 +137,7 @@ function FocusDashboard() {
         </div>
       </div>
 
-      <div className="flex-1 overflow-y-auto pb-32 no-scrollbar px-4 pt-4">
+      <div className="flex-1 overflow-y-auto pb-6 no-scrollbar px-4 pt-4">
         
         {/* HERO SECTION */}
         <motion.div 

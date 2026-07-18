@@ -98,7 +98,7 @@ function TeamProgressDashboard() {
 
   if (isLoading) {
     return (
-      <div className="flex-1 bg-[#FAFAFA] min-h-screen flex items-center justify-center">
+      <div className="flex-1 bg-[#FAFAFA] h-full flex items-center justify-center">
         <span className="w-8 h-8 border-4 border-[#6366f1] border-t-transparent rounded-full animate-spin"></span>
       </div>
     );
@@ -107,7 +107,7 @@ function TeamProgressDashboard() {
   if (!group || !members) return null;
 
   return (
-    <div className="flex flex-col flex-1 bg-[#FAFAFA] min-h-screen pb-20 overflow-y-auto hide-scrollbar">
+    <div className="flex flex-col flex-1 bg-[#FAFAFA] h-full pb-6 overflow-y-auto hide-scrollbar">
       <TeamDashboardHeader 
         groupId={groupId}
         groupName={group.name}

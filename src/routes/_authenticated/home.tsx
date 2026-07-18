@@ -130,7 +130,7 @@ function HomePage() {
   const xpPct = Math.min(100, (xp / 1200) * 100);
 
   return (
-    <div className="pb-8">
+    <div className="flex flex-col bg-background/50 h-full">
       <TopBar title={<span>Good Morning, {name}! 👋</span>} subtitle="Ready to make today amazing?" />
 
       {/* Hero companion card */}
