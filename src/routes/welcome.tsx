@@ -16,7 +16,7 @@ function Welcome() {
             M
           </div>
           <h1 className="mt-4 text-3xl font-black tracking-tight">
-            Mnemora Sync <span className="text-primary">AI</span>
+            Sana <span className="text-primary">AI</span>
           </h1>
           <p className="mt-1 text-sm text-muted-foreground">Your AI Learning Companion</p>
           <div className="mt-4 inline-flex items-center gap-2 rounded-full border border-primary/25 bg-primary/5 px-4 py-2 text-xs font-semibold text-primary">
