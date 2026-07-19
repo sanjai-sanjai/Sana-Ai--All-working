@@ -1,7 +1,7 @@
 import { Link, useLocation } from "@tanstack/react-router";
 import { 
   Home, Users, BarChart3, User, Settings, HelpCircle, 
-  MessageSquare, LogOut, ChevronRight, Sparkles 
+  MessageSquare, LogOut, ChevronRight, Sparkles, Shield, FileText
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/hooks/use-auth";
@@ -18,6 +18,8 @@ const bottomItems = [
   { to: "/settings", label: "Settings", icon: Settings },
   { to: "/help", label: "Help & Support", icon: HelpCircle },
   { to: "/feedback", label: "Feedback", icon: MessageSquare },
+  { to: "/privacy-policy", label: "Privacy Policy", icon: Shield },
+  { to: "/terms-of-service", label: "Terms of Service", icon: FileText },
 ];
 
 export function PremiumSidebar() {

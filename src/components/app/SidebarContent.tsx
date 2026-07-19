@@ -5,7 +5,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { useResolvedAvatar } from "@/hooks/use-resolved-avatar";
 import { 
   Home, Users, BarChart3, Calendar, BookOpen, Target, Brain, 
-  Users2, Bell, Settings, MessageSquare, HelpCircle, LogOut 
+  Users2, Bell, Settings, MessageSquare, HelpCircle, LogOut,
+  Shield, FileText
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
@@ -81,6 +82,8 @@ export function SidebarContent() {
       { to: "/settings", label: "Settings", icon: Settings },
       { to: "/feedback", label: "Feedback", icon: MessageSquare },
       { to: "/help", label: "Help & Support", icon: HelpCircle },
+      { to: "/privacy-policy", label: "Privacy Policy", icon: Shield },
+      { to: "/terms-of-service", label: "Terms of Service", icon: FileText },
     ]}
   ];
 
