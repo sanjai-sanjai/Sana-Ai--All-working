@@ -6,6 +6,8 @@ import { TopBar } from "@/components/app/TopBar";
 import { ProgressRing } from "@/components/app/ProgressRing";
 import { StudyTogetherHomeCard } from "@/components/app/StudyTogetherHomeCard";
 import sanaHero from "@/assets/sana-hero.png";
+import pythonLogo from "@/assets/python.jpeg";
+import replyAvatar from "@/assets/reply-avatar.png";
 import {
   CalendarPlus,
   MessageCircle,
@@ -128,7 +130,7 @@ function HomePage() {
   const xpPct = Math.min(100, (xp / 1200) * 100);
 
   return (
-    <div className="pb-8">
+    <div className="flex flex-col bg-background/50 h-full">
       <TopBar title={<span>Good Morning, {name}! 👋</span>} subtitle="Ready to make today amazing?" />
 
       {/* Hero companion card */}
@@ -182,7 +184,7 @@ function HomePage() {
             </div>
 
             {/* Focus Score — horizontal bar */}
-            <div className="mt-3 flex items-center gap-3 rounded-2xl border border-border/70 bg-background/70 p-3 backdrop-blur">
+            <Link to="/focus" className="mt-3 flex items-center gap-3 rounded-2xl border border-border/70 bg-background/70 p-3 backdrop-blur transition-all active:scale-[0.98] hover:bg-background/80 block">
               <div className="shrink-0">
                 <ProgressRing value={92} size={54} stroke={6} label="92" />
               </div>
@@ -196,7 +198,7 @@ function HomePage() {
               <div className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-success/15 text-success">
                 <ArrowUpRight className="h-4 w-4" />
               </div>
-            </div>
+            </Link>
           </div>
         </div>
       </section>
@@ -207,8 +209,8 @@ function HomePage() {
           <SectionHeader icon={<CalendarPlus className="h-3.5 w-3.5" />} title="Today's Plan" action="View all" />
 
           <div className="mt-3 flex items-start gap-3">
-            <div className="grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-gradient-to-br from-amber-200 to-amber-100 text-2xl shadow-sm">
-              🐍
+            <div className="grid h-12 w-12 shrink-0 place-items-center overflow-hidden rounded-2xl shadow-sm border border-border/50">
+              <img src={pythonLogo} alt="Python" className="h-full w-full object-cover" />
             </div>
             <div className="min-w-0 flex-1">
               <div className="text-[14px] font-bold leading-tight">Python Preparation</div>
@@ -251,9 +253,6 @@ function HomePage() {
           </button>
         </div>
 
-        {/* Study Together Phase 2 Entry */}
-        <StudyTogetherHomeCard />
-
         {/* Quick Actions */}
         <div>
           <div className="mb-2 flex items-center justify-between px-1">
@@ -269,11 +268,15 @@ function HomePage() {
           </div>
         </div>
 
+        {/* Upcoming AI Call */}
         <UpcomingAICall
           reminders={reminders}
           onDone={(id) => doneMut.mutate(id)}
           onDelete={(id) => deleteMut.mutate(id)}
         />
+
+        {/* Study Together Phase 2 Entry */}
+        <StudyTogetherHomeCard />
       </section>
 
       {/* Study Stats */}
@@ -551,8 +554,8 @@ function UpcomingAICall({
       ) : (
         <>
           <div className="mt-3 flex items-center gap-3 rounded-2xl border border-border/70 bg-background/50 p-3">
-            <div className="grid h-12 w-12 shrink-0 place-items-center overflow-hidden rounded-2xl bg-gradient-to-br from-lavender to-primary/15">
-              <span className="text-xl">👩‍🎓</span>
+            <div className="h-12 w-12 shrink-0 overflow-hidden rounded-full shadow-sm ring-2 ring-white border-[1.5px] border-[#6366f1]/20 bg-[#f3f0ff]">
+              <img src={replyAvatar} alt="Sana AI" className="h-full w-full object-cover" />
             </div>
             <div className="min-w-0 flex-1">
               <div className="flex flex-wrap items-center gap-1.5">

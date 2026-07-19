@@ -6,12 +6,18 @@ export function ProgressRing({
   stroke = 6,
   className,
   label,
+  labelClassName,
+  color,
+  trackColor,
 }: {
   value: number;
   size?: number;
   stroke?: number;
   className?: string;
-  label?: string;
+  label?: React.ReactNode;
+  labelClassName?: string;
+  color?: string;
+  trackColor?: string;
 }) {
   const r = (size - stroke) / 2;
   const c = 2 * Math.PI * r;
@@ -27,7 +33,7 @@ export function ProgressRing({
             <stop offset="100%" stopColor="oklch(0.66 0.24 305)" />
           </linearGradient>
         </defs>
-        <circle cx={size / 2} cy={size / 2} r={r} strokeWidth={stroke} className="fill-none stroke-muted" />
+        <circle cx={size / 2} cy={size / 2} r={r} strokeWidth={stroke} stroke={trackColor} className={cn("fill-none", !trackColor && "stroke-muted")} />
         <circle
           cx={size / 2}
           cy={size / 2}
@@ -36,10 +42,10 @@ export function ProgressRing({
           strokeLinecap="round"
           strokeDasharray={`${dash} ${c}`}
           className="fill-none"
-          stroke={`url(#pg-${size}-${value})`}
+          stroke={color || `url(#pg-${size}-${value})`}
         />
       </svg>
-      <span className="absolute text-[11px] font-bold text-foreground">{label ?? `${Math.round(pct)}%`}</span>
+      <span className={cn("absolute text-[11px] font-bold text-foreground", labelClassName)}>{label ?? `${Math.round(pct)}%`}</span>
     </div>
   );
 }

@@ -16,22 +16,42 @@ import { Route as OnboardingRouteImport } from './routes/onboarding'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as ApiTeachReflectionRouteImport } from './routes/api/teach-reflection'
+import { Route as ApiTeachPrepRouteImport } from './routes/api/teach-prep'
+import { Route as ApiStudySessionRouteImport } from './routes/api/study-session'
+import { Route as ApiStudyCoachRouteImport } from './routes/api/study-coach'
+import { Route as ApiOrchestratorActionRouteImport } from './routes/api/orchestrator-action'
+import { Route as ApiGroupChatRouteImport } from './routes/api/group-chat'
 import { Route as ApiChatRouteImport } from './routes/api/chat'
-import { Route as AuthenticatedStudyTogetherRouteImport } from './routes/_authenticated/study-together'
+import { Route as AuthenticatedSettingsRouteImport } from './routes/_authenticated/settings'
+import { Route as AuthenticatedScheduleRouteImport } from './routes/_authenticated/schedule'
 import { Route as AuthenticatedRevisionRouteImport } from './routes/_authenticated/revision'
+import { Route as AuthenticatedResourcesRouteImport } from './routes/_authenticated/resources'
 import { Route as AuthenticatedReminderRouteImport } from './routes/_authenticated/reminder'
 import { Route as AuthenticatedProfileRouteImport } from './routes/_authenticated/profile'
 import { Route as AuthenticatedPowerNapRouteImport } from './routes/_authenticated/power-nap'
 import { Route as AuthenticatedPomodoroRouteImport } from './routes/_authenticated/pomodoro'
 import { Route as AuthenticatedNotificationsRouteImport } from './routes/_authenticated/notifications'
 import { Route as AuthenticatedHomeRouteImport } from './routes/_authenticated/home'
+import { Route as AuthenticatedHelpRouteImport } from './routes/_authenticated/help'
+import { Route as AuthenticatedGoalsRouteImport } from './routes/_authenticated/goals'
+import { Route as AuthenticatedFriendsRouteImport } from './routes/_authenticated/friends'
+import { Route as AuthenticatedFocusRouteImport } from './routes/_authenticated/focus'
+import { Route as AuthenticatedFeedbackRouteImport } from './routes/_authenticated/feedback'
 import { Route as AuthenticatedClassroomRouteImport } from './routes/_authenticated/classroom'
 import { Route as AuthenticatedChatRouteImport } from './routes/_authenticated/chat'
 import { Route as AuthenticatedAnalyticsRouteImport } from './routes/_authenticated/analytics'
 import { Route as AuthenticatedAiCallsRouteImport } from './routes/_authenticated/ai-calls'
+import { Route as AuthenticatedStudyTogetherIndexRouteImport } from './routes/_authenticated/study-together.index'
 import { Route as AuthenticatedRevisionIndexRouteImport } from './routes/_authenticated/revision.index'
 import { Route as AuthenticatedClassroomIndexRouteImport } from './routes/_authenticated/classroom.index'
+import { Route as ApiGroupMeetStatusRouteImport } from './routes/api/group-meet/status'
+import { Route as ApiGroupMeetStartRouteImport } from './routes/api/group-meet/start'
+import { Route as ApiGroupMeetJoinRouteImport } from './routes/api/group-meet/join'
+import { Route as ApiGroupMeetEndRouteImport } from './routes/api/group-meet/end'
 import { Route as AuthenticatedVoiceCallNewRouteImport } from './routes/_authenticated/voice-call.new'
+import { Route as AuthenticatedStudyTogetherCreateRouteImport } from './routes/_authenticated/study-together.create'
+import { Route as AuthenticatedStudyTogetherGroupIdRouteImport } from './routes/_authenticated/study-together.$groupId'
 import { Route as AuthenticatedRevisionSetIdRouteImport } from './routes/_authenticated/revision/$setId'
 import { Route as AuthenticatedClassroomSettingsRouteImport } from './routes/_authenticated/classroom.settings'
 import { Route as AuthenticatedClassroomAssignmentsRouteImport } from './routes/_authenticated/classroom.assignments'
@@ -43,6 +63,7 @@ import { Route as ApiPublicStudyNotesStreamRouteImport } from './routes/api/publ
 import { Route as ApiPublicHooksVoiceDispatcherRouteImport } from './routes/api/public/hooks/voice-dispatcher'
 import { Route as ApiPublicHooksClassroomSyncRouteImport } from './routes/api/public/hooks/classroom-sync'
 import { Route as ApiPublicClassroomCallbackRouteImport } from './routes/api/public/classroom/callback'
+import { Route as AuthenticatedStudyTogetherGroupIdTeamRouteImport } from './routes/_authenticated/study-together.$groupId_.team'
 import { Route as AuthenticatedRevisionSetIdSummaryRouteImport } from './routes/_authenticated/revision/$setId.summary'
 import { Route as AuthenticatedRevisionSetIdSessionRouteImport } from './routes/_authenticated/revision/$setId.session'
 import { Route as AuthenticatedRevisionSetIdNotesRouteImport } from './routes/_authenticated/revision/$setId.notes'
@@ -86,20 +107,59 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiTeachReflectionRoute = ApiTeachReflectionRouteImport.update({
+  id: '/api/teach-reflection',
+  path: '/api/teach-reflection',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiTeachPrepRoute = ApiTeachPrepRouteImport.update({
+  id: '/api/teach-prep',
+  path: '/api/teach-prep',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiStudySessionRoute = ApiStudySessionRouteImport.update({
+  id: '/api/study-session',
+  path: '/api/study-session',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiStudyCoachRoute = ApiStudyCoachRouteImport.update({
+  id: '/api/study-coach',
+  path: '/api/study-coach',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiOrchestratorActionRoute = ApiOrchestratorActionRouteImport.update({
+  id: '/api/orchestrator-action',
+  path: '/api/orchestrator-action',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiGroupChatRoute = ApiGroupChatRouteImport.update({
+  id: '/api/group-chat',
+  path: '/api/group-chat',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiChatRoute = ApiChatRouteImport.update({
   id: '/api/chat',
   path: '/api/chat',
   getParentRoute: () => rootRouteImport,
 } as any)
-const AuthenticatedStudyTogetherRoute =
-  AuthenticatedStudyTogetherRouteImport.update({
-    id: '/study-together',
-    path: '/study-together',
-    getParentRoute: () => AuthenticatedRouteRoute,
-  } as any)
+const AuthenticatedSettingsRoute = AuthenticatedSettingsRouteImport.update({
+  id: '/settings',
+  path: '/settings',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedScheduleRoute = AuthenticatedScheduleRouteImport.update({
+  id: '/schedule',
+  path: '/schedule',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
 const AuthenticatedRevisionRoute = AuthenticatedRevisionRouteImport.update({
   id: '/revision',
   path: '/revision',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedResourcesRoute = AuthenticatedResourcesRouteImport.update({
+  id: '/resources',
+  path: '/resources',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
 const AuthenticatedReminderRoute = AuthenticatedReminderRouteImport.update({
@@ -133,6 +193,31 @@ const AuthenticatedHomeRoute = AuthenticatedHomeRouteImport.update({
   path: '/home',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedHelpRoute = AuthenticatedHelpRouteImport.update({
+  id: '/help',
+  path: '/help',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedGoalsRoute = AuthenticatedGoalsRouteImport.update({
+  id: '/goals',
+  path: '/goals',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedFriendsRoute = AuthenticatedFriendsRouteImport.update({
+  id: '/friends',
+  path: '/friends',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedFocusRoute = AuthenticatedFocusRouteImport.update({
+  id: '/focus',
+  path: '/focus',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedFeedbackRoute = AuthenticatedFeedbackRouteImport.update({
+  id: '/feedback',
+  path: '/feedback',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
 const AuthenticatedClassroomRoute = AuthenticatedClassroomRouteImport.update({
   id: '/classroom',
   path: '/classroom',
@@ -153,6 +238,12 @@ const AuthenticatedAiCallsRoute = AuthenticatedAiCallsRouteImport.update({
   path: '/ai-calls',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedStudyTogetherIndexRoute =
+  AuthenticatedStudyTogetherIndexRouteImport.update({
+    id: '/study-together/',
+    path: '/study-together/',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedRevisionIndexRoute =
   AuthenticatedRevisionIndexRouteImport.update({
     id: '/',
@@ -165,10 +256,42 @@ const AuthenticatedClassroomIndexRoute =
     path: '/',
     getParentRoute: () => AuthenticatedClassroomRoute,
   } as any)
+const ApiGroupMeetStatusRoute = ApiGroupMeetStatusRouteImport.update({
+  id: '/api/group-meet/status',
+  path: '/api/group-meet/status',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiGroupMeetStartRoute = ApiGroupMeetStartRouteImport.update({
+  id: '/api/group-meet/start',
+  path: '/api/group-meet/start',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiGroupMeetJoinRoute = ApiGroupMeetJoinRouteImport.update({
+  id: '/api/group-meet/join',
+  path: '/api/group-meet/join',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiGroupMeetEndRoute = ApiGroupMeetEndRouteImport.update({
+  id: '/api/group-meet/end',
+  path: '/api/group-meet/end',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AuthenticatedVoiceCallNewRoute =
   AuthenticatedVoiceCallNewRouteImport.update({
     id: '/voice-call/new',
     path: '/voice-call/new',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedStudyTogetherCreateRoute =
+  AuthenticatedStudyTogetherCreateRouteImport.update({
+    id: '/study-together/create',
+    path: '/study-together/create',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedStudyTogetherGroupIdRoute =
+  AuthenticatedStudyTogetherGroupIdRouteImport.update({
+    id: '/study-together/$groupId',
+    path: '/study-together/$groupId',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
 const AuthenticatedRevisionSetIdRoute =
@@ -234,6 +357,12 @@ const ApiPublicClassroomCallbackRoute =
     path: '/api/public/classroom/callback',
     getParentRoute: () => rootRouteImport,
   } as any)
+const AuthenticatedStudyTogetherGroupIdTeamRoute =
+  AuthenticatedStudyTogetherGroupIdTeamRouteImport.update({
+    id: '/study-together/$groupId_/team',
+    path: '/study-together/$groupId/team',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedRevisionSetIdSummaryRoute =
   AuthenticatedRevisionSetIdSummaryRouteImport.update({
     id: '/summary',
@@ -294,28 +423,49 @@ export interface FileRoutesByFullPath {
   '/analytics': typeof AuthenticatedAnalyticsRoute
   '/chat': typeof AuthenticatedChatRoute
   '/classroom': typeof AuthenticatedClassroomRouteWithChildren
+  '/feedback': typeof AuthenticatedFeedbackRoute
+  '/focus': typeof AuthenticatedFocusRoute
+  '/friends': typeof AuthenticatedFriendsRoute
+  '/goals': typeof AuthenticatedGoalsRoute
+  '/help': typeof AuthenticatedHelpRoute
   '/home': typeof AuthenticatedHomeRoute
   '/notifications': typeof AuthenticatedNotificationsRoute
   '/pomodoro': typeof AuthenticatedPomodoroRoute
   '/power-nap': typeof AuthenticatedPowerNapRoute
   '/profile': typeof AuthenticatedProfileRoute
   '/reminder': typeof AuthenticatedReminderRoute
+  '/resources': typeof AuthenticatedResourcesRoute
   '/revision': typeof AuthenticatedRevisionRouteWithChildren
-  '/study-together': typeof AuthenticatedStudyTogetherRoute
+  '/schedule': typeof AuthenticatedScheduleRoute
+  '/settings': typeof AuthenticatedSettingsRoute
   '/api/chat': typeof ApiChatRoute
+  '/api/group-chat': typeof ApiGroupChatRoute
+  '/api/orchestrator-action': typeof ApiOrchestratorActionRoute
+  '/api/study-coach': typeof ApiStudyCoachRoute
+  '/api/study-session': typeof ApiStudySessionRoute
+  '/api/teach-prep': typeof ApiTeachPrepRoute
+  '/api/teach-reflection': typeof ApiTeachReflectionRoute
   '/classroom/announcements': typeof AuthenticatedClassroomAnnouncementsRoute
   '/classroom/assignments': typeof AuthenticatedClassroomAssignmentsRoute
   '/classroom/settings': typeof AuthenticatedClassroomSettingsRoute
   '/revision/$setId': typeof AuthenticatedRevisionSetIdRouteWithChildren
+  '/study-together/$groupId': typeof AuthenticatedStudyTogetherGroupIdRoute
+  '/study-together/create': typeof AuthenticatedStudyTogetherCreateRoute
   '/voice-call/new': typeof AuthenticatedVoiceCallNewRoute
+  '/api/group-meet/end': typeof ApiGroupMeetEndRoute
+  '/api/group-meet/join': typeof ApiGroupMeetJoinRoute
+  '/api/group-meet/start': typeof ApiGroupMeetStartRoute
+  '/api/group-meet/status': typeof ApiGroupMeetStatusRoute
   '/classroom/': typeof AuthenticatedClassroomIndexRoute
   '/revision/': typeof AuthenticatedRevisionIndexRoute
+  '/study-together/': typeof AuthenticatedStudyTogetherIndexRoute
   '/revision/$setId/ask': typeof AuthenticatedRevisionSetIdAskRoute
   '/revision/$setId/flashcards': typeof AuthenticatedRevisionSetIdFlashcardsRoute
   '/revision/$setId/known': typeof AuthenticatedRevisionSetIdKnownRoute
   '/revision/$setId/notes': typeof AuthenticatedRevisionSetIdNotesRouteWithChildren
   '/revision/$setId/session': typeof AuthenticatedRevisionSetIdSessionRoute
   '/revision/$setId/summary': typeof AuthenticatedRevisionSetIdSummaryRoute
+  '/study-together/$groupId/team': typeof AuthenticatedStudyTogetherGroupIdTeamRoute
   '/api/public/classroom/callback': typeof ApiPublicClassroomCallbackRoute
   '/api/public/hooks/classroom-sync': typeof ApiPublicHooksClassroomSyncRoute
   '/api/public/hooks/voice-dispatcher': typeof ApiPublicHooksVoiceDispatcherRoute
@@ -336,27 +486,48 @@ export interface FileRoutesByTo {
   '/ai-calls': typeof AuthenticatedAiCallsRoute
   '/analytics': typeof AuthenticatedAnalyticsRoute
   '/chat': typeof AuthenticatedChatRoute
+  '/feedback': typeof AuthenticatedFeedbackRoute
+  '/focus': typeof AuthenticatedFocusRoute
+  '/friends': typeof AuthenticatedFriendsRoute
+  '/goals': typeof AuthenticatedGoalsRoute
+  '/help': typeof AuthenticatedHelpRoute
   '/home': typeof AuthenticatedHomeRoute
   '/notifications': typeof AuthenticatedNotificationsRoute
   '/pomodoro': typeof AuthenticatedPomodoroRoute
   '/power-nap': typeof AuthenticatedPowerNapRoute
   '/profile': typeof AuthenticatedProfileRoute
   '/reminder': typeof AuthenticatedReminderRoute
-  '/study-together': typeof AuthenticatedStudyTogetherRoute
+  '/resources': typeof AuthenticatedResourcesRoute
+  '/schedule': typeof AuthenticatedScheduleRoute
+  '/settings': typeof AuthenticatedSettingsRoute
   '/api/chat': typeof ApiChatRoute
+  '/api/group-chat': typeof ApiGroupChatRoute
+  '/api/orchestrator-action': typeof ApiOrchestratorActionRoute
+  '/api/study-coach': typeof ApiStudyCoachRoute
+  '/api/study-session': typeof ApiStudySessionRoute
+  '/api/teach-prep': typeof ApiTeachPrepRoute
+  '/api/teach-reflection': typeof ApiTeachReflectionRoute
   '/classroom/announcements': typeof AuthenticatedClassroomAnnouncementsRoute
   '/classroom/assignments': typeof AuthenticatedClassroomAssignmentsRoute
   '/classroom/settings': typeof AuthenticatedClassroomSettingsRoute
   '/revision/$setId': typeof AuthenticatedRevisionSetIdRouteWithChildren
+  '/study-together/$groupId': typeof AuthenticatedStudyTogetherGroupIdRoute
+  '/study-together/create': typeof AuthenticatedStudyTogetherCreateRoute
   '/voice-call/new': typeof AuthenticatedVoiceCallNewRoute
+  '/api/group-meet/end': typeof ApiGroupMeetEndRoute
+  '/api/group-meet/join': typeof ApiGroupMeetJoinRoute
+  '/api/group-meet/start': typeof ApiGroupMeetStartRoute
+  '/api/group-meet/status': typeof ApiGroupMeetStatusRoute
   '/classroom': typeof AuthenticatedClassroomIndexRoute
   '/revision': typeof AuthenticatedRevisionIndexRoute
+  '/study-together': typeof AuthenticatedStudyTogetherIndexRoute
   '/revision/$setId/ask': typeof AuthenticatedRevisionSetIdAskRoute
   '/revision/$setId/flashcards': typeof AuthenticatedRevisionSetIdFlashcardsRoute
   '/revision/$setId/known': typeof AuthenticatedRevisionSetIdKnownRoute
   '/revision/$setId/notes': typeof AuthenticatedRevisionSetIdNotesRouteWithChildren
   '/revision/$setId/session': typeof AuthenticatedRevisionSetIdSessionRoute
   '/revision/$setId/summary': typeof AuthenticatedRevisionSetIdSummaryRoute
+  '/study-together/$groupId/team': typeof AuthenticatedStudyTogetherGroupIdTeamRoute
   '/api/public/classroom/callback': typeof ApiPublicClassroomCallbackRoute
   '/api/public/hooks/classroom-sync': typeof ApiPublicHooksClassroomSyncRoute
   '/api/public/hooks/voice-dispatcher': typeof ApiPublicHooksVoiceDispatcherRoute
@@ -380,28 +551,49 @@ export interface FileRoutesById {
   '/_authenticated/analytics': typeof AuthenticatedAnalyticsRoute
   '/_authenticated/chat': typeof AuthenticatedChatRoute
   '/_authenticated/classroom': typeof AuthenticatedClassroomRouteWithChildren
+  '/_authenticated/feedback': typeof AuthenticatedFeedbackRoute
+  '/_authenticated/focus': typeof AuthenticatedFocusRoute
+  '/_authenticated/friends': typeof AuthenticatedFriendsRoute
+  '/_authenticated/goals': typeof AuthenticatedGoalsRoute
+  '/_authenticated/help': typeof AuthenticatedHelpRoute
   '/_authenticated/home': typeof AuthenticatedHomeRoute
   '/_authenticated/notifications': typeof AuthenticatedNotificationsRoute
   '/_authenticated/pomodoro': typeof AuthenticatedPomodoroRoute
   '/_authenticated/power-nap': typeof AuthenticatedPowerNapRoute
   '/_authenticated/profile': typeof AuthenticatedProfileRoute
   '/_authenticated/reminder': typeof AuthenticatedReminderRoute
+  '/_authenticated/resources': typeof AuthenticatedResourcesRoute
   '/_authenticated/revision': typeof AuthenticatedRevisionRouteWithChildren
-  '/_authenticated/study-together': typeof AuthenticatedStudyTogetherRoute
+  '/_authenticated/schedule': typeof AuthenticatedScheduleRoute
+  '/_authenticated/settings': typeof AuthenticatedSettingsRoute
   '/api/chat': typeof ApiChatRoute
+  '/api/group-chat': typeof ApiGroupChatRoute
+  '/api/orchestrator-action': typeof ApiOrchestratorActionRoute
+  '/api/study-coach': typeof ApiStudyCoachRoute
+  '/api/study-session': typeof ApiStudySessionRoute
+  '/api/teach-prep': typeof ApiTeachPrepRoute
+  '/api/teach-reflection': typeof ApiTeachReflectionRoute
   '/_authenticated/classroom/announcements': typeof AuthenticatedClassroomAnnouncementsRoute
   '/_authenticated/classroom/assignments': typeof AuthenticatedClassroomAssignmentsRoute
   '/_authenticated/classroom/settings': typeof AuthenticatedClassroomSettingsRoute
   '/_authenticated/revision/$setId': typeof AuthenticatedRevisionSetIdRouteWithChildren
+  '/_authenticated/study-together/$groupId': typeof AuthenticatedStudyTogetherGroupIdRoute
+  '/_authenticated/study-together/create': typeof AuthenticatedStudyTogetherCreateRoute
   '/_authenticated/voice-call/new': typeof AuthenticatedVoiceCallNewRoute
+  '/api/group-meet/end': typeof ApiGroupMeetEndRoute
+  '/api/group-meet/join': typeof ApiGroupMeetJoinRoute
+  '/api/group-meet/start': typeof ApiGroupMeetStartRoute
+  '/api/group-meet/status': typeof ApiGroupMeetStatusRoute
   '/_authenticated/classroom/': typeof AuthenticatedClassroomIndexRoute
   '/_authenticated/revision/': typeof AuthenticatedRevisionIndexRoute
+  '/_authenticated/study-together/': typeof AuthenticatedStudyTogetherIndexRoute
   '/_authenticated/revision/$setId/ask': typeof AuthenticatedRevisionSetIdAskRoute
   '/_authenticated/revision/$setId/flashcards': typeof AuthenticatedRevisionSetIdFlashcardsRoute
   '/_authenticated/revision/$setId/known': typeof AuthenticatedRevisionSetIdKnownRoute
   '/_authenticated/revision/$setId/notes': typeof AuthenticatedRevisionSetIdNotesRouteWithChildren
   '/_authenticated/revision/$setId/session': typeof AuthenticatedRevisionSetIdSessionRoute
   '/_authenticated/revision/$setId/summary': typeof AuthenticatedRevisionSetIdSummaryRoute
+  '/_authenticated/study-together/$groupId_/team': typeof AuthenticatedStudyTogetherGroupIdTeamRoute
   '/api/public/classroom/callback': typeof ApiPublicClassroomCallbackRoute
   '/api/public/hooks/classroom-sync': typeof ApiPublicHooksClassroomSyncRoute
   '/api/public/hooks/voice-dispatcher': typeof ApiPublicHooksVoiceDispatcherRoute
@@ -425,28 +617,49 @@ export interface FileRouteTypes {
     | '/analytics'
     | '/chat'
     | '/classroom'
+    | '/feedback'
+    | '/focus'
+    | '/friends'
+    | '/goals'
+    | '/help'
     | '/home'
     | '/notifications'
     | '/pomodoro'
     | '/power-nap'
     | '/profile'
     | '/reminder'
+    | '/resources'
     | '/revision'
-    | '/study-together'
+    | '/schedule'
+    | '/settings'
     | '/api/chat'
+    | '/api/group-chat'
+    | '/api/orchestrator-action'
+    | '/api/study-coach'
+    | '/api/study-session'
+    | '/api/teach-prep'
+    | '/api/teach-reflection'
     | '/classroom/announcements'
     | '/classroom/assignments'
     | '/classroom/settings'
     | '/revision/$setId'
+    | '/study-together/$groupId'
+    | '/study-together/create'
     | '/voice-call/new'
+    | '/api/group-meet/end'
+    | '/api/group-meet/join'
+    | '/api/group-meet/start'
+    | '/api/group-meet/status'
     | '/classroom/'
     | '/revision/'
+    | '/study-together/'
     | '/revision/$setId/ask'
     | '/revision/$setId/flashcards'
     | '/revision/$setId/known'
     | '/revision/$setId/notes'
     | '/revision/$setId/session'
     | '/revision/$setId/summary'
+    | '/study-together/$groupId/team'
     | '/api/public/classroom/callback'
     | '/api/public/hooks/classroom-sync'
     | '/api/public/hooks/voice-dispatcher'
@@ -467,27 +680,48 @@ export interface FileRouteTypes {
     | '/ai-calls'
     | '/analytics'
     | '/chat'
+    | '/feedback'
+    | '/focus'
+    | '/friends'
+    | '/goals'
+    | '/help'
     | '/home'
     | '/notifications'
     | '/pomodoro'
     | '/power-nap'
     | '/profile'
     | '/reminder'
-    | '/study-together'
+    | '/resources'
+    | '/schedule'
+    | '/settings'
     | '/api/chat'
+    | '/api/group-chat'
+    | '/api/orchestrator-action'
+    | '/api/study-coach'
+    | '/api/study-session'
+    | '/api/teach-prep'
+    | '/api/teach-reflection'
     | '/classroom/announcements'
     | '/classroom/assignments'
     | '/classroom/settings'
     | '/revision/$setId'
+    | '/study-together/$groupId'
+    | '/study-together/create'
     | '/voice-call/new'
+    | '/api/group-meet/end'
+    | '/api/group-meet/join'
+    | '/api/group-meet/start'
+    | '/api/group-meet/status'
     | '/classroom'
     | '/revision'
+    | '/study-together'
     | '/revision/$setId/ask'
     | '/revision/$setId/flashcards'
     | '/revision/$setId/known'
     | '/revision/$setId/notes'
     | '/revision/$setId/session'
     | '/revision/$setId/summary'
+    | '/study-together/$groupId/team'
     | '/api/public/classroom/callback'
     | '/api/public/hooks/classroom-sync'
     | '/api/public/hooks/voice-dispatcher'
@@ -510,28 +744,49 @@ export interface FileRouteTypes {
     | '/_authenticated/analytics'
     | '/_authenticated/chat'
     | '/_authenticated/classroom'
+    | '/_authenticated/feedback'
+    | '/_authenticated/focus'
+    | '/_authenticated/friends'
+    | '/_authenticated/goals'
+    | '/_authenticated/help'
     | '/_authenticated/home'
     | '/_authenticated/notifications'
     | '/_authenticated/pomodoro'
     | '/_authenticated/power-nap'
     | '/_authenticated/profile'
     | '/_authenticated/reminder'
+    | '/_authenticated/resources'
     | '/_authenticated/revision'
-    | '/_authenticated/study-together'
+    | '/_authenticated/schedule'
+    | '/_authenticated/settings'
     | '/api/chat'
+    | '/api/group-chat'
+    | '/api/orchestrator-action'
+    | '/api/study-coach'
+    | '/api/study-session'
+    | '/api/teach-prep'
+    | '/api/teach-reflection'
     | '/_authenticated/classroom/announcements'
     | '/_authenticated/classroom/assignments'
     | '/_authenticated/classroom/settings'
     | '/_authenticated/revision/$setId'
+    | '/_authenticated/study-together/$groupId'
+    | '/_authenticated/study-together/create'
     | '/_authenticated/voice-call/new'
+    | '/api/group-meet/end'
+    | '/api/group-meet/join'
+    | '/api/group-meet/start'
+    | '/api/group-meet/status'
     | '/_authenticated/classroom/'
     | '/_authenticated/revision/'
+    | '/_authenticated/study-together/'
     | '/_authenticated/revision/$setId/ask'
     | '/_authenticated/revision/$setId/flashcards'
     | '/_authenticated/revision/$setId/known'
     | '/_authenticated/revision/$setId/notes'
     | '/_authenticated/revision/$setId/session'
     | '/_authenticated/revision/$setId/summary'
+    | '/_authenticated/study-together/$groupId_/team'
     | '/api/public/classroom/callback'
     | '/api/public/hooks/classroom-sync'
     | '/api/public/hooks/voice-dispatcher'
@@ -552,6 +807,16 @@ export interface RootRouteChildren {
   TermsOfServiceRoute: typeof TermsOfServiceRoute
   WelcomeRoute: typeof WelcomeRoute
   ApiChatRoute: typeof ApiChatRoute
+  ApiGroupChatRoute: typeof ApiGroupChatRoute
+  ApiOrchestratorActionRoute: typeof ApiOrchestratorActionRoute
+  ApiStudyCoachRoute: typeof ApiStudyCoachRoute
+  ApiStudySessionRoute: typeof ApiStudySessionRoute
+  ApiTeachPrepRoute: typeof ApiTeachPrepRoute
+  ApiTeachReflectionRoute: typeof ApiTeachReflectionRoute
+  ApiGroupMeetEndRoute: typeof ApiGroupMeetEndRoute
+  ApiGroupMeetJoinRoute: typeof ApiGroupMeetJoinRoute
+  ApiGroupMeetStartRoute: typeof ApiGroupMeetStartRoute
+  ApiGroupMeetStatusRoute: typeof ApiGroupMeetStatusRoute
   ApiPublicClassroomCallbackRoute: typeof ApiPublicClassroomCallbackRoute
   ApiPublicHooksClassroomSyncRoute: typeof ApiPublicHooksClassroomSyncRoute
   ApiPublicHooksVoiceDispatcherRoute: typeof ApiPublicHooksVoiceDispatcherRoute
@@ -612,6 +877,48 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/teach-reflection': {
+      id: '/api/teach-reflection'
+      path: '/api/teach-reflection'
+      fullPath: '/api/teach-reflection'
+      preLoaderRoute: typeof ApiTeachReflectionRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/teach-prep': {
+      id: '/api/teach-prep'
+      path: '/api/teach-prep'
+      fullPath: '/api/teach-prep'
+      preLoaderRoute: typeof ApiTeachPrepRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/study-session': {
+      id: '/api/study-session'
+      path: '/api/study-session'
+      fullPath: '/api/study-session'
+      preLoaderRoute: typeof ApiStudySessionRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/study-coach': {
+      id: '/api/study-coach'
+      path: '/api/study-coach'
+      fullPath: '/api/study-coach'
+      preLoaderRoute: typeof ApiStudyCoachRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/orchestrator-action': {
+      id: '/api/orchestrator-action'
+      path: '/api/orchestrator-action'
+      fullPath: '/api/orchestrator-action'
+      preLoaderRoute: typeof ApiOrchestratorActionRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/group-chat': {
+      id: '/api/group-chat'
+      path: '/api/group-chat'
+      fullPath: '/api/group-chat'
+      preLoaderRoute: typeof ApiGroupChatRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/chat': {
       id: '/api/chat'
       path: '/api/chat'
@@ -619,11 +926,18 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiChatRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/_authenticated/study-together': {
-      id: '/_authenticated/study-together'
-      path: '/study-together'
-      fullPath: '/study-together'
-      preLoaderRoute: typeof AuthenticatedStudyTogetherRouteImport
+    '/_authenticated/settings': {
+      id: '/_authenticated/settings'
+      path: '/settings'
+      fullPath: '/settings'
+      preLoaderRoute: typeof AuthenticatedSettingsRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/schedule': {
+      id: '/_authenticated/schedule'
+      path: '/schedule'
+      fullPath: '/schedule'
+      preLoaderRoute: typeof AuthenticatedScheduleRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/revision': {
@@ -631,6 +945,13 @@ declare module '@tanstack/react-router' {
       path: '/revision'
       fullPath: '/revision'
       preLoaderRoute: typeof AuthenticatedRevisionRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/resources': {
+      id: '/_authenticated/resources'
+      path: '/resources'
+      fullPath: '/resources'
+      preLoaderRoute: typeof AuthenticatedResourcesRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/reminder': {
@@ -675,6 +996,41 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedHomeRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/help': {
+      id: '/_authenticated/help'
+      path: '/help'
+      fullPath: '/help'
+      preLoaderRoute: typeof AuthenticatedHelpRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/goals': {
+      id: '/_authenticated/goals'
+      path: '/goals'
+      fullPath: '/goals'
+      preLoaderRoute: typeof AuthenticatedGoalsRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/friends': {
+      id: '/_authenticated/friends'
+      path: '/friends'
+      fullPath: '/friends'
+      preLoaderRoute: typeof AuthenticatedFriendsRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/focus': {
+      id: '/_authenticated/focus'
+      path: '/focus'
+      fullPath: '/focus'
+      preLoaderRoute: typeof AuthenticatedFocusRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/feedback': {
+      id: '/_authenticated/feedback'
+      path: '/feedback'
+      fullPath: '/feedback'
+      preLoaderRoute: typeof AuthenticatedFeedbackRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/classroom': {
       id: '/_authenticated/classroom'
       path: '/classroom'
@@ -703,6 +1059,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAiCallsRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/study-together/': {
+      id: '/_authenticated/study-together/'
+      path: '/study-together'
+      fullPath: '/study-together/'
+      preLoaderRoute: typeof AuthenticatedStudyTogetherIndexRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/revision/': {
       id: '/_authenticated/revision/'
       path: '/'
@@ -717,11 +1080,53 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedClassroomIndexRouteImport
       parentRoute: typeof AuthenticatedClassroomRoute
     }
+    '/api/group-meet/status': {
+      id: '/api/group-meet/status'
+      path: '/api/group-meet/status'
+      fullPath: '/api/group-meet/status'
+      preLoaderRoute: typeof ApiGroupMeetStatusRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/group-meet/start': {
+      id: '/api/group-meet/start'
+      path: '/api/group-meet/start'
+      fullPath: '/api/group-meet/start'
+      preLoaderRoute: typeof ApiGroupMeetStartRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/group-meet/join': {
+      id: '/api/group-meet/join'
+      path: '/api/group-meet/join'
+      fullPath: '/api/group-meet/join'
+      preLoaderRoute: typeof ApiGroupMeetJoinRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/group-meet/end': {
+      id: '/api/group-meet/end'
+      path: '/api/group-meet/end'
+      fullPath: '/api/group-meet/end'
+      preLoaderRoute: typeof ApiGroupMeetEndRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/_authenticated/voice-call/new': {
       id: '/_authenticated/voice-call/new'
       path: '/voice-call/new'
       fullPath: '/voice-call/new'
       preLoaderRoute: typeof AuthenticatedVoiceCallNewRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/study-together/create': {
+      id: '/_authenticated/study-together/create'
+      path: '/study-together/create'
+      fullPath: '/study-together/create'
+      preLoaderRoute: typeof AuthenticatedStudyTogetherCreateRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/study-together/$groupId': {
+      id: '/_authenticated/study-together/$groupId'
+      path: '/study-together/$groupId'
+      fullPath: '/study-together/$groupId'
+      preLoaderRoute: typeof AuthenticatedStudyTogetherGroupIdRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/revision/$setId': {
@@ -800,6 +1205,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/api/public/classroom/callback'
       preLoaderRoute: typeof ApiPublicClassroomCallbackRouteImport
       parentRoute: typeof rootRouteImport
+    }
+    '/_authenticated/study-together/$groupId_/team': {
+      id: '/_authenticated/study-together/$groupId_/team'
+      path: '/study-together/$groupId/team'
+      fullPath: '/study-together/$groupId/team'
+      preLoaderRoute: typeof AuthenticatedStudyTogetherGroupIdTeamRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/revision/$setId/summary': {
       id: '/_authenticated/revision/$setId/summary'
@@ -948,15 +1360,26 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedAnalyticsRoute: typeof AuthenticatedAnalyticsRoute
   AuthenticatedChatRoute: typeof AuthenticatedChatRoute
   AuthenticatedClassroomRoute: typeof AuthenticatedClassroomRouteWithChildren
+  AuthenticatedFeedbackRoute: typeof AuthenticatedFeedbackRoute
+  AuthenticatedFocusRoute: typeof AuthenticatedFocusRoute
+  AuthenticatedFriendsRoute: typeof AuthenticatedFriendsRoute
+  AuthenticatedGoalsRoute: typeof AuthenticatedGoalsRoute
+  AuthenticatedHelpRoute: typeof AuthenticatedHelpRoute
   AuthenticatedHomeRoute: typeof AuthenticatedHomeRoute
   AuthenticatedNotificationsRoute: typeof AuthenticatedNotificationsRoute
   AuthenticatedPomodoroRoute: typeof AuthenticatedPomodoroRoute
   AuthenticatedPowerNapRoute: typeof AuthenticatedPowerNapRoute
   AuthenticatedProfileRoute: typeof AuthenticatedProfileRoute
   AuthenticatedReminderRoute: typeof AuthenticatedReminderRoute
+  AuthenticatedResourcesRoute: typeof AuthenticatedResourcesRoute
   AuthenticatedRevisionRoute: typeof AuthenticatedRevisionRouteWithChildren
-  AuthenticatedStudyTogetherRoute: typeof AuthenticatedStudyTogetherRoute
+  AuthenticatedScheduleRoute: typeof AuthenticatedScheduleRoute
+  AuthenticatedSettingsRoute: typeof AuthenticatedSettingsRoute
+  AuthenticatedStudyTogetherGroupIdRoute: typeof AuthenticatedStudyTogetherGroupIdRoute
+  AuthenticatedStudyTogetherCreateRoute: typeof AuthenticatedStudyTogetherCreateRoute
   AuthenticatedVoiceCallNewRoute: typeof AuthenticatedVoiceCallNewRoute
+  AuthenticatedStudyTogetherIndexRoute: typeof AuthenticatedStudyTogetherIndexRoute
+  AuthenticatedStudyTogetherGroupIdTeamRoute: typeof AuthenticatedStudyTogetherGroupIdTeamRoute
 }
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
@@ -964,15 +1387,28 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedAnalyticsRoute: AuthenticatedAnalyticsRoute,
   AuthenticatedChatRoute: AuthenticatedChatRoute,
   AuthenticatedClassroomRoute: AuthenticatedClassroomRouteWithChildren,
+  AuthenticatedFeedbackRoute: AuthenticatedFeedbackRoute,
+  AuthenticatedFocusRoute: AuthenticatedFocusRoute,
+  AuthenticatedFriendsRoute: AuthenticatedFriendsRoute,
+  AuthenticatedGoalsRoute: AuthenticatedGoalsRoute,
+  AuthenticatedHelpRoute: AuthenticatedHelpRoute,
   AuthenticatedHomeRoute: AuthenticatedHomeRoute,
   AuthenticatedNotificationsRoute: AuthenticatedNotificationsRoute,
   AuthenticatedPomodoroRoute: AuthenticatedPomodoroRoute,
   AuthenticatedPowerNapRoute: AuthenticatedPowerNapRoute,
   AuthenticatedProfileRoute: AuthenticatedProfileRoute,
   AuthenticatedReminderRoute: AuthenticatedReminderRoute,
+  AuthenticatedResourcesRoute: AuthenticatedResourcesRoute,
   AuthenticatedRevisionRoute: AuthenticatedRevisionRouteWithChildren,
-  AuthenticatedStudyTogetherRoute: AuthenticatedStudyTogetherRoute,
+  AuthenticatedScheduleRoute: AuthenticatedScheduleRoute,
+  AuthenticatedSettingsRoute: AuthenticatedSettingsRoute,
+  AuthenticatedStudyTogetherGroupIdRoute:
+    AuthenticatedStudyTogetherGroupIdRoute,
+  AuthenticatedStudyTogetherCreateRoute: AuthenticatedStudyTogetherCreateRoute,
   AuthenticatedVoiceCallNewRoute: AuthenticatedVoiceCallNewRoute,
+  AuthenticatedStudyTogetherIndexRoute: AuthenticatedStudyTogetherIndexRoute,
+  AuthenticatedStudyTogetherGroupIdTeamRoute:
+    AuthenticatedStudyTogetherGroupIdTeamRoute,
 }
 
 const AuthenticatedRouteRouteWithChildren =
@@ -987,6 +1423,16 @@ const rootRouteChildren: RootRouteChildren = {
   TermsOfServiceRoute: TermsOfServiceRoute,
   WelcomeRoute: WelcomeRoute,
   ApiChatRoute: ApiChatRoute,
+  ApiGroupChatRoute: ApiGroupChatRoute,
+  ApiOrchestratorActionRoute: ApiOrchestratorActionRoute,
+  ApiStudyCoachRoute: ApiStudyCoachRoute,
+  ApiStudySessionRoute: ApiStudySessionRoute,
+  ApiTeachPrepRoute: ApiTeachPrepRoute,
+  ApiTeachReflectionRoute: ApiTeachReflectionRoute,
+  ApiGroupMeetEndRoute: ApiGroupMeetEndRoute,
+  ApiGroupMeetJoinRoute: ApiGroupMeetJoinRoute,
+  ApiGroupMeetStartRoute: ApiGroupMeetStartRoute,
+  ApiGroupMeetStatusRoute: ApiGroupMeetStatusRoute,
   ApiPublicClassroomCallbackRoute: ApiPublicClassroomCallbackRoute,
   ApiPublicHooksClassroomSyncRoute: ApiPublicHooksClassroomSyncRoute,
   ApiPublicHooksVoiceDispatcherRoute: ApiPublicHooksVoiceDispatcherRoute,

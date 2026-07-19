@@ -28,9 +28,10 @@ type Props = {
   busy?: boolean;
   isLastAssistant?: boolean;
   streaming?: boolean;
+  onAction?: (action: string, payload: any) => void;
 };
 
-function SanaMarkdownInner({ content, onChip, busy, isLastAssistant, streaming }: Props) {
+function SanaMarkdownInner({ content, onChip, busy, isLastAssistant, streaming, onAction }: Props) {
   const chipsInteractive = !!onChip && !!isLastAssistant && !streaming;
   return (
     <div className={streaming ? "sana-stream" : undefined}>
@@ -70,6 +71,10 @@ function SanaMarkdownInner({ content, onChip, busy, isLastAssistant, streaming }
           a: ({ children, href }) => (
             <a href={href} target="_blank" rel="noreferrer" className="font-semibold text-primary underline underline-offset-2">{children}</a>
           ),
+          del: ({ children }) => {
+            if (children === "▋") return <span className="animate-pulse text-primary font-bold ml-0.5">▋</span>;
+            return <del className="line-through">{children}</del>;
+          },
           hr: () => <hr className="my-3 border-border" />,
           table: ({ children }) => (
             <div className="my-3 overflow-hidden rounded-2xl border border-border bg-card shadow-card">
@@ -108,6 +113,10 @@ function SanaMarkdownInner({ content, onChip, busy, isLastAssistant, streaming }
               if (streaming) return <StreamingRoadmapPreview raw={raw} />;
               return <RoadmapBlock raw={raw} />;
             }
+            if (lang === "assignments") {
+              if (streaming) return <div className="text-sm font-bold text-primary flex items-center gap-2"><Sparkles className="h-4 w-4 animate-pulse" /> Generating Assignments...</div>;
+              return <AssignmentsBlock raw={raw} onAction={onAction} />;
+            }
             const isBlock = !!lang || raw.includes("\n");
             if (!isBlock) {
               return (
@@ -136,7 +145,8 @@ export const SanaMarkdown = memo(SanaMarkdownInner, (a, b) =>
   a.busy === b.busy &&
   a.streaming === b.streaming &&
   a.isLastAssistant === b.isLastAssistant &&
-  a.onChip === b.onChip,
+  a.onChip === b.onChip &&
+  a.onAction === b.onAction,
 );
 
 /* ---------------- Callout ---------------- */
@@ -516,6 +526,69 @@ function StreamingRoadmapPreview({ raw }: { raw: string }) {
           );
         })}
       </ul>
+    </div>
+  );
+}
+
+/* ---------------- Assignments block ---------------- */
+
+function AssignmentsBlock({ raw, onAction }: { raw: string, onAction?: (action: string, payload: any) => void }) {
+  const lines = raw.split("\n").map(l => l.trim()).filter(Boolean);
+  
+  if (lines.length === 0) return null;
+
+  const cards = lines.map((line, i) => {
+    // Format: Title | Assigned To | Estimated Time | Difficulty
+    const parts = line.split("|").map(p => p.trim());
+    if (parts.length < 2) return null;
+    
+    return {
+      title: parts[0],
+      assignee: parts[1],
+      time: parts[2] || "N/A",
+      difficulty: parts[3] || "Medium",
+    };
+  }).filter(Boolean);
+
+  return (
+    <div className="my-4 space-y-3">
+      {cards.map((c: any, i) => (
+        <div key={i} className="rounded-[20px] border border-border bg-card p-4 shadow-sm relative overflow-hidden">
+          <div className="absolute top-0 right-0 p-3 flex gap-2">
+            <span className={cn(
+              "px-2 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wider",
+              c.difficulty.toLowerCase().includes("easy") ? "bg-green-100 text-green-700" :
+              c.difficulty.toLowerCase().includes("hard") ? "bg-red-100 text-red-700" :
+              "bg-orange-100 text-orange-700"
+            )}>
+              {c.difficulty}
+            </span>
+          </div>
+          <div className="pr-16">
+            <h4 className="text-[15px] font-bold text-foreground">{c.title}</h4>
+            <div className="mt-2 flex flex-wrap items-center gap-3 text-[12px] font-medium text-muted-foreground">
+              <span className="flex items-center gap-1">
+                <div className="grid h-5 w-5 place-items-center rounded-full bg-primary/10 text-[10px] text-primary">
+                  {c.assignee.substring(0, 1).toUpperCase()}
+                </div>
+                {c.assignee}
+              </span>
+              <span className="flex items-center gap-1">
+                <Coffee className="h-3.5 w-3.5" />
+                {c.time}
+              </span>
+            </div>
+          </div>
+          <div className="mt-4 flex gap-2">
+            <button 
+              onClick={() => onAction?.('start_learning', { title: c.title, assignee: c.assignee })}
+              className="flex-1 rounded-xl bg-primary py-2 text-[13px] font-bold text-primary-foreground shadow-sm transition-transform active:scale-95"
+            >
+              Start Learning
+            </button>
+          </div>
+        </div>
+      ))}
     </div>
   );
 }

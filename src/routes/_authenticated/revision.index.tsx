@@ -64,7 +64,7 @@ function RevisionPage() {
       <section className="mx-5 mt-4">
         <div className="flex items-center justify-between">
           <h3 className="text-sm font-bold">Revision Overview</h3>
-          <Link to="/analytics" search={{ tab: "overview", range: "week" }} className="inline-flex items-center gap-1 text-xs font-semibold text-primary">View Analytics <Sparkles className="h-3 w-3" /></Link>
+          <Link to="/analytics" search={{ tab: "Overview", range: "Week" }} className="inline-flex items-center gap-1 text-xs font-semibold text-primary">View Analytics <Sparkles className="h-3 w-3" /></Link>
         </div>
         <div className="shadow-card mt-2 grid grid-cols-4 gap-2 rounded-[24px] border border-border bg-card p-3 text-center">
           <StatCard icon={<BookOpen className="h-4 w-4" />} tone="bg-lavender text-primary" value={stats.topics} label="Sets" sub="Total" />

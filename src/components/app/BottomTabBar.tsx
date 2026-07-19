@@ -1,20 +1,20 @@
 import { Link, useLocation } from "@tanstack/react-router";
-import { Home, MessageCircle, BookOpen, Timer, BarChart3 } from "lucide-react";
+import { Home, MessageCircle, BookOpen, Timer, Users } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const items = [
   { to: "/home", label: "Home", icon: Home },
   { to: "/chat", label: "Chat", icon: MessageCircle },
-  { to: "/revision", label: "Revision", icon: BookOpen },
-  { to: "/pomodoro", label: "Pomodoro", icon: Timer },
-  { to: "/analytics", label: "Analytics", icon: BarChart3 },
+  { to: "/study-together", label: "Study Together", icon: Users },
+  { to: "/pomodoro", label: "Pomodoro Technique", icon: Timer },
+  { to: "/revision", label: "Revision Set", icon: BookOpen },
 ];
 
 export function BottomTabBar() {
   const loc = useLocation();
   return (
     <nav
-      className="pointer-events-auto sticky bottom-0 left-0 right-0 z-30 border-t border-border/60 bg-background/95 backdrop-blur-xl"
+      className="pointer-events-auto absolute bottom-0 left-0 right-0 z-50 border-t border-border/60 bg-background/95 backdrop-blur-xl w-full"
       style={{ paddingBottom: "max(env(safe-area-inset-bottom), 0.25rem)" }}
     >
       <ul className="mx-auto grid max-w-md grid-cols-5 px-2 pt-2">
@@ -37,7 +37,7 @@ export function BottomTabBar() {
                 >
                   <Icon className={cn("h-5 w-5", active && "fill-primary/15")} strokeWidth={active ? 2.4 : 2} />
                 </span>
-                <span>{label}</span>
+                <span className="text-center leading-tight px-0.5">{label}</span>
               </Link>
             </li>
           );

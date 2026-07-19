@@ -112,7 +112,7 @@ function SetDetail() {
         >
           <Play className="h-3.5 w-3.5" /> Smart Revision
         </button>
-        <Link to="/analytics" search={{ tab: "overview", range: "week" }} className="shadow-card grid place-items-center rounded-2xl border border-border bg-card px-3 py-2 text-xs font-semibold">
+        <Link to="/analytics" search={{ tab: "Overview", range: "Week" }} className="shadow-card grid place-items-center rounded-2xl border border-border bg-card px-3 py-2 text-xs font-semibold">
           <TrendingUp className="mb-0.5 h-4 w-4" />Analytics
         </Link>
       </section>

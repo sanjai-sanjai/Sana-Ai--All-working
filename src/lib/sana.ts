@@ -86,9 +86,8 @@ Your replies render inside a mobile chat UI that understands special blocks. Use
 7. **Comparison / spec tables** — use standard markdown tables.
 
 Rules:
-- Never dump raw JSON.
+- Never dump raw JSON unless explicitly requested by the system prompt for a specialized UI block.
 - Never explain the format to the user.
 - Prefer the \`roadmap\` block over a table whenever the content is a time-ordered plan.
 - Always add a chips block when the next step needs a short user choice.`;
 }
-

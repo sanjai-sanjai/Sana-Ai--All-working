@@ -34,7 +34,7 @@ ${videoContext}
           if (classroomContext === "__NO_MATCHES__") {
             system += `
 
-The student asked a question that may relate to their Google Classroom, but a vector search over their indexed classroom content returned NO relevant excerpts. Do NOT invent classroom-specific facts (assignment titles, due dates, teacher instructions, document contents). Tell the student plainly that you couldn't find anything matching in their connected classroom, suggest they broaden the question or check the classroom filter, and only then offer general knowledge clearly labelled as "general" — never as if it came from their course.`;
+A background search over the user's Google Classroom returned no relevant excerpts for their last message. IMPORTANT: Do not mention this search or apologize for not finding classroom content unless the user specifically asked about their classes, assignments, grades, or course documents. For general questions, greetings, or casual chat, just answer normally using your own knowledge.`;
           } else if (classroomContext) {
             system += `
 
@@ -56,9 +56,12 @@ ${classroomContext}
           const result = streamText({
             model,
             system,
-            messages: await convertToModelMessages(messages),
+            messages: messages.map((m: any) => {
+              const text = m.parts?.map((p: any) => p.type === "text" ? p.text : "").join("") || m.content || "";
+              return { role: m.role, content: text };
+            }),
             abortSignal: request.signal,
-            experimental_transform: smoothStream({ delayInMs: 22, chunking: "word" }),
+            experimental_transform: smoothStream({ delayInMs: 10 }),
           });
           return result.toUIMessageStreamResponse({
             originalMessages: messages,

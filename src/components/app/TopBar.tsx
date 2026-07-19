@@ -5,17 +5,19 @@ import { cn } from "@/lib/utils";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useResolvedAvatar } from "@/hooks/use-resolved-avatar";
+import { useSidebarStore } from "@/store/useSidebarStore";
 
 type Props = {
   title?: ReactNode;
   subtitle?: ReactNode;
   onMenu?: () => void;
-  back?: string;
+  back?: string | (() => void);
   right?: ReactNode;
+  hideDefaults?: boolean;
   className?: string;
 };
 
-export function TopBar({ title, subtitle, onMenu, back, right, className }: Props) {
+export function TopBar({ title, subtitle, onMenu, back, right, hideDefaults, className }: Props) {
   const { data: profile } = useQuery({
     queryKey: ["profile"],
     queryFn: async () => {
@@ -26,6 +28,7 @@ export function TopBar({ title, subtitle, onMenu, back, right, className }: Prop
     }
   });
   const resolvedAvatarUrl = useResolvedAvatar(profile?.avatar_url ?? null);
+  const { setOpen } = useSidebarStore();
 
   return (
     <header
@@ -34,17 +37,20 @@ export function TopBar({ title, subtitle, onMenu, back, right, className }: Prop
         className,
       )}
     >
-      {back ? (
-        <Link
-          to={back}
-          className="grid h-11 w-11 shrink-0 place-items-center rounded-2xl bg-card shadow-card"
-        >
-          <ArrowLeft className="h-5 w-5" />
+      {back && typeof back === 'string' && (
+        <Link to={back} className="mr-3 grid h-10 w-10 shrink-0 place-items-center rounded-full bg-white/50 text-foreground transition-all hover:bg-white active:scale-95 active:bg-black/5 dark:bg-black/20 dark:hover:bg-black/40">
+          <ArrowLeft className="h-[22px] w-[22px]" />
         </Link>
-      ) : (
+      )}
+      {back && typeof back === 'function' && (
+        <button onClick={back} className="mr-3 grid h-10 w-10 shrink-0 place-items-center rounded-full bg-white/50 text-foreground transition-all hover:bg-white active:scale-95 active:bg-black/5 dark:bg-black/20 dark:hover:bg-black/40">
+          <ArrowLeft className="h-[22px] w-[22px]" />
+        </button>
+      )}
+      {!back && (
         <button
           type="button"
-          onClick={onMenu}
+          onClick={onMenu ? onMenu : () => setOpen(true)}
           className="grid h-11 w-11 shrink-0 place-items-center rounded-2xl bg-card shadow-card"
           aria-label="Menu"
         >
@@ -57,20 +63,24 @@ export function TopBar({ title, subtitle, onMenu, back, right, className }: Prop
       </div>
       <div className="flex shrink-0 items-center gap-2">
         {right}
-        <Link to="/notifications" className="relative grid h-11 w-11 place-items-center rounded-2xl bg-card shadow-card" aria-label="Notifications">
-          <Bell className="h-5 w-5" />
-          <span className="absolute right-1.5 top-1.5 grid h-4 min-w-4 place-items-center rounded-full bg-destructive px-1 text-[9px] font-bold text-destructive-foreground">
-            3
-          </span>
-        </Link>
-        <Link to="/profile" className="relative shrink-0" aria-label="Profile">
-          <img
-            src={resolvedAvatarUrl}
-            alt="Profile"
-            className="h-11 w-11 rounded-full border-2 border-card object-cover shadow-card"
-          />
-          <span className="absolute bottom-0 right-0 h-3 w-3 rounded-full border-2 border-card bg-success" />
-        </Link>
+        {!hideDefaults && (
+          <>
+            <Link to="/notifications" className="relative grid h-11 w-11 place-items-center rounded-2xl bg-card shadow-card" aria-label="Notifications">
+              <Bell className="h-5 w-5" />
+              <span className="absolute right-1.5 top-1.5 grid h-4 min-w-4 place-items-center rounded-full bg-destructive px-1 text-[9px] font-bold text-destructive-foreground">
+                3
+              </span>
+            </Link>
+            <Link to="/profile" className="relative shrink-0" aria-label="Profile">
+              <img
+                src={resolvedAvatarUrl}
+                alt="Profile"
+                className="h-11 w-11 rounded-full border-2 border-card object-cover shadow-card"
+              />
+              <span className="absolute bottom-0 right-0 h-3 w-3 rounded-full border-2 border-card bg-success" />
+            </Link>
+          </>
+        )}
       </div>
     </header>
   );
