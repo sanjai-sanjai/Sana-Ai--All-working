@@ -82,6 +82,7 @@ export const structureStudyNote = createServerFn({ method: "POST" })
     try {
       const { object } = await generateObject({
         model,
+        mode: "tool",
         system: SYSTEM,
         prompt: `USER QUESTION:\n${data.userQuestion}\n\nASSISTANT REPLY (markdown to restructure — preserve facts, strip markdown, reorder for learning):\n${data.assistantMarkdown}`,
         schema: NotebookDocSchema,
@@ -89,11 +90,8 @@ export const structureStudyNote = createServerFn({ method: "POST" })
       });
       doc = object;
     } catch (err) {
-      if (NoObjectGeneratedError.isInstance(err)) {
-        doc = fallbackDoc(data.userQuestion || "Study Note", data.assistantMarkdown);
-      } else {
-        throw err;
-      }
+      console.warn("[study-notes] Object generation failed, using fallback doc:", err);
+      doc = fallbackDoc(data.userQuestion || "Study Note", data.assistantMarkdown);
     }
 
     await supabase.from("study_notes").upsert(

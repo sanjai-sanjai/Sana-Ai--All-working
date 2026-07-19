@@ -1,7 +1,9 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { streamObject } from "ai";
 import { NotebookDocSchema } from "@/lib/study-notes.schema";
+import { parseMarkdownToNotebookDoc } from "@/lib/study-notes.parser";
 import { createGoogleGenerativeAI } from "@ai-sdk/google";
+import { getGroqModel } from "@/lib/ai-groq.server";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
 
 const SYSTEM = `You are Sana — an elite university tutor who prepares handwritten-style study notes for exam revision.
@@ -33,41 +35,83 @@ HARD RULES:
 - Always include at least one section block.
 - Return valid blocks matching the schema. Never return raw markdown as a paragraph.`;
 
+function getModelConfig() {
+  const geminiKey = process.env.GEMINI_API_KEY;
+  if (geminiKey && geminiKey.startsWith("AIza")) {
+    const google = createGoogleGenerativeAI({
+      apiKey: geminiKey,
+    });
+    return { model: google("gemini-2.0-flash"), mode: "auto" as const };
+  }
+  return { model: getGroqModel(), mode: "tool" as const };
+}
+
 async function handle(request: Request) {
   try {
     const data = await request.json();
-    const google = createGoogleGenerativeAI({
-      apiKey: process.env.GEMINI_API_KEY,
-    });
-    const model = google("gemini-1.5-flash-latest");
+    console.log("[Study Notes] Starting generation for message:", data.messageId, "User:", data.userId);
+    
+    const { model, mode } = getModelConfig();
 
     const result = await streamObject({
       model,
+      mode,
       system: SYSTEM,
       prompt: `USER QUESTION:\n${data.userQuestion}\n\nASSISTANT REPLY (markdown to restructure — preserve facts, strip markdown, reorder for learning):\n${data.assistantMarkdown}`,
       schema: NotebookDocSchema,
       onFinish: async ({ object }) => {
         if (object) {
-          await supabaseAdmin.from("study_notes").upsert(
-            {
-              user_id: data.userId, 
-              thread_id: data.threadId,
-              message_id: data.messageId,
-              topic: object.title,
-              style: data.style || "ruled",
-              structured: object as never,
-              markdown: data.assistantMarkdown,
-            } as never,
-            { onConflict: "user_id,message_id" },
-          );
+          console.log("[Study Notes] Generation finished. Saving to database for message:", data.messageId);
+          try {
+            await supabaseAdmin.from("study_notes").upsert(
+              {
+                user_id: data.userId, 
+                thread_id: data.threadId,
+                message_id: data.messageId,
+                topic: object.title,
+                style: data.style || "ruled",
+                structured: object as never,
+                markdown: data.assistantMarkdown,
+              } as never,
+              { onConflict: "user_id,message_id" },
+            );
+            console.log("[Study Notes] Saved successfully to database.");
+          } catch (dbErr) {
+            console.error("[Study Notes] Database save error:", dbErr);
+          }
         }
       },
     });
 
     return result.toTextStreamResponse();
   } catch (error) {
-    console.error("Stream error:", error);
-    return new Response(JSON.stringify({ error: "Failed to generate" }), { status: 500 });
+    console.error("[Study Notes] Stream error, using instant parser fallback:", error);
+    try {
+      const data = await request.clone().json().catch(() => ({}));
+      if (data.assistantMarkdown) {
+        const fallbackDoc = parseMarkdownToNotebookDoc(data.userQuestion || "Study Notes", data.assistantMarkdown);
+        if (data.userId && data.messageId) {
+          await supabaseAdmin.from("study_notes").upsert(
+            {
+              user_id: data.userId,
+              thread_id: data.threadId,
+              message_id: data.messageId,
+              topic: fallbackDoc.title,
+              style: data.style || "ruled",
+              structured: fallbackDoc as never,
+              markdown: data.assistantMarkdown,
+            } as never,
+            { onConflict: "user_id,message_id" },
+          );
+        }
+        return new Response(JSON.stringify(fallbackDoc), {
+          headers: { "Content-Type": "application/json" },
+        });
+      }
+    } catch (fallbackErr) {
+      console.error("[Study Notes] Fallback error:", fallbackErr);
+    }
+    return new Response(JSON.stringify({ error: error instanceof Error ? error.message : "Failed to generate" }), { status: 500 });
   }
 }
 

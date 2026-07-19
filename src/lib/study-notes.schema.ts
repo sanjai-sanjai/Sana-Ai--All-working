@@ -88,21 +88,21 @@ export const STYLE_META: Record<
   unruled: {
     label: "Unruled Notes",
     description: "Clean white paper for diagrams and math.",
-    ready: false,
+    ready: true,
   },
   book: {
     label: "Book Style",
     description: "Premium textbook with beautiful typography.",
-    ready: false,
+    ready: true,
   },
   cornell: {
     label: "Cornell Notes",
     description: "Keywords, details, summary — for deep review.",
-    ready: false,
+    ready: true,
   },
   mindmap: {
     label: "Mind Map",
     description: "Central topic branching into subtopics.",
-    ready: false,
+    ready: true,
   },
 };

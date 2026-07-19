@@ -82,7 +82,7 @@ function CardShell({
       initial={{ opacity: 0, y: 8 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.3 }}
-      className={`relative my-4 rounded-xl border ${tones[tone]} px-4 py-3 shadow-sm`}
+      className={`relative mt-5 mb-4 rounded-xl border ${tones[tone]} px-4 py-3.5 shadow-sm`}
     >
       <div className="absolute -top-3 left-4 rounded-md bg-white px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider shadow-sm border border-slate-100 flex items-center gap-1.5 opacity-90">
         <Icon className="h-3 w-3" />
