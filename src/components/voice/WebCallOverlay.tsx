@@ -109,42 +109,71 @@ export function WebCallOverlay({
     return () => clearInterval(interval);
   }, [callStatus]);
 
-  // Web Audio Ringtone Generator (440Hz + 480Hz US Standard Phone Ring Cadence)
+  // Natural Harmonic Phone Ringtone Generator (Pleasant modern marimba/bell phone chime)
   const startRingtone = () => {
     stopRingtone();
     try {
       const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
       if (!AudioCtx) return;
-      audioCtxRef.current = new AudioCtx();
+      const ctx = new AudioCtx();
+      audioCtxRef.current = ctx;
 
-      const playRingBurst = () => {
+      // Resume AudioContext if suspended by browser autoplay policy
+      if (ctx.state === "suspended") {
+        const resumeAudio = () => {
+          if (audioCtxRef.current && audioCtxRef.current.state === "suspended") {
+            audioCtxRef.current.resume();
+          }
+          window.removeEventListener("click", resumeAudio);
+          window.removeEventListener("touchstart", resumeAudio);
+        };
+        window.addEventListener("click", resumeAudio, { once: true });
+        window.addEventListener("touchstart", resumeAudio, { once: true });
+      }
+
+      // Melodic notes for modern smartphone ring chime:
+      // E5 (659.25), G#5 (830.61), B5 (987.77), E6 (1318.51)
+      const playMelodicChime = () => {
         if (!audioCtxRef.current || audioCtxRef.current.state === "closed") return;
-        const ctx = audioCtxRef.current;
+        const currentCtx = audioCtxRef.current;
+        const now = currentCtx.currentTime;
 
-        const osc1 = ctx.createOscillator();
-        const osc2 = ctx.createOscillator();
-        const gain = ctx.createGain();
+        const chimePattern = [
+          { freq: 659.25, time: now + 0.0, dur: 0.35, gain: 0.14 },
+          { freq: 987.77, time: now + 0.0, dur: 0.35, gain: 0.1 },
+          { freq: 830.61, time: now + 0.18, dur: 0.35, gain: 0.15 },
+          { freq: 1318.51, time: now + 0.36, dur: 0.45, gain: 0.18 },
+          { freq: 987.77, time: now + 0.65, dur: 0.5, gain: 0.15 },
+          // Second phrase in ring sequence
+          { freq: 659.25, time: now + 1.05, dur: 0.35, gain: 0.14 },
+          { freq: 830.61, time: now + 1.23, dur: 0.35, gain: 0.15 },
+          { freq: 1318.51, time: now + 1.41, dur: 0.65, gain: 0.2 },
+        ];
 
-        osc1.type = "sine";
-        osc1.frequency.setValueAtTime(440, ctx.currentTime);
-        osc2.type = "sine";
-        osc2.frequency.setValueAtTime(480, ctx.currentTime);
+        chimePattern.forEach(({ freq, time, dur, gain: targetGain }) => {
+          try {
+            const osc = currentCtx.createOscillator();
+            const noteGain = currentCtx.createGain();
 
-        gain.gain.setValueAtTime(0.15, ctx.currentTime);
-        gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 1.8);
+            osc.type = "sine";
+            osc.frequency.setValueAtTime(freq, time);
 
-        osc1.connect(gain);
-        osc2.connect(gain);
-        gain.connect(ctx.destination);
+            // Percussive bell/marimba envelope: fast attack, smooth exponential decay
+            noteGain.gain.setValueAtTime(0.0001, time);
+            noteGain.gain.linearRampToValueAtTime(targetGain, time + 0.025);
+            noteGain.gain.exponentialRampToValueAtTime(0.0001, time + dur);
 
-        osc1.start(ctx.currentTime);
-        osc2.start(ctx.currentTime);
-        osc1.stop(ctx.currentTime + 1.8);
-        osc2.stop(ctx.currentTime + 1.8);
+            osc.connect(noteGain);
+            noteGain.connect(currentCtx.destination);
+
+            osc.start(time);
+            osc.stop(time + dur);
+          } catch {}
+        });
       };
 
-      playRingBurst();
-      ringtoneTimerRef.current = setInterval(playRingBurst, 3000);
+      playMelodicChime();
+      ringtoneTimerRef.current = setInterval(playMelodicChime, 2800);
     } catch (e) {
       console.warn("Could not play ringtone audio:", e);
     }

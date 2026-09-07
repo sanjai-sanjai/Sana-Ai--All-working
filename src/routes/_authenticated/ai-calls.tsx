@@ -1,13 +1,14 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { TopBar } from "@/components/app/TopBar";
 import { listReminders, deleteReminder, updateReminderStatus } from "@/lib/reminders.functions";
-import { ArrowLeft, Phone, Plus, Repeat, Trash2, CheckCheck, Clock, Sparkles } from "lucide-react";
+import { ArrowLeft, Phone, Plus, Repeat, Trash2, CheckCheck, Clock, Sparkles, Pencil } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { triggerIncomingWebCall } from "@/hooks/use-web-call-reminder";
+import { EditScheduledCallModal, type ScheduledCallItem } from "@/components/voice/EditScheduledCallModal";
 
 export const Route = createFileRoute("/_authenticated/ai-calls")({
   head: () => ({
@@ -20,8 +21,19 @@ export const Route = createFileRoute("/_authenticated/ai-calls")({
 });
 
 type ReminderItem = {
-  id: string; title: string; scheduled_at: string; type: string;
-  repeat_mode: string; status: string; duration_minutes: number;
+  id: string;
+  title: string;
+  scheduled_at: string;
+  type: string;
+  repeat_mode: string;
+  status: string;
+  duration_minutes: number;
+  persona?: string;
+  alert_before_minutes?: number;
+  strict_mode?: boolean;
+  dont_miss?: boolean;
+  ai_call?: boolean;
+  quote?: string | null;
 };
 
 function AICallsPage() {
@@ -30,6 +42,8 @@ function AICallsPage() {
   const list = useServerFn(listReminders);
   const del = useServerFn(deleteReminder);
   const setStatus = useServerFn(updateReminderStatus);
+
+  const [editingReminder, setEditingReminder] = useState<ReminderItem | null>(null);
 
   const { data: reminders = [] } = useQuery<ReminderItem[]>({
     queryKey: ["reminders"],
@@ -70,7 +84,7 @@ function AICallsPage() {
       reminderTitle: upcoming[0]?.title || "DBMS Functions & Modules Revision",
       topic: "Python & DBMS Architecture",
       userName: "",
-      persona: "friendly_coach",
+      persona: (upcoming[0]?.persona as any) || "friendly_coach",
     });
   };
 
@@ -85,7 +99,6 @@ function AICallsPage() {
           <ArrowLeft className="h-3.5 w-3.5" /> Back
         </button>
       </div>
-
 
       <section className="mx-5 mt-2 space-y-2">
         <button
@@ -125,6 +138,7 @@ function AICallsPage() {
                     r={r}
                     onDone={() => doneMut.mutate(r.id)}
                     onDelete={() => deleteMut.mutate(r.id)}
+                    onEdit={() => setEditingReminder(r)}
                   />
                 ))}
               </ul>
@@ -162,35 +176,96 @@ function AICallsPage() {
           </ul>
         </section>
       )}
+
+      {/* Edit Scheduled Call Modal */}
+      <EditScheduledCallModal
+        isOpen={!!editingReminder}
+        reminder={editingReminder}
+        onClose={() => setEditingReminder(null)}
+        onSaved={() => {
+          qc.invalidateQueries({ queryKey: ["reminders"] });
+          setEditingReminder(null);
+        }}
+      />
     </div>
   );
 }
 
-function CallCard({ r, onDone, onDelete }: { r: ReminderItem; onDone: () => void; onDelete: () => void }) {
+function CallCard({
+  r,
+  onDone,
+  onDelete,
+  onEdit,
+}: {
+  r: ReminderItem;
+  onDone: () => void;
+  onDelete: () => void;
+  onEdit: () => void;
+}) {
   const at = new Date(r.scheduled_at);
+
+  const personaLabelMap: Record<string, { label: string; color: string }> = {
+    friendly_coach: { label: "Friendly Coach 💕", color: "bg-purple-500/15 text-purple-600 dark:text-purple-300" },
+    strict_mentor: { label: "Strict Mentor 🎯", color: "bg-red-500/15 text-red-600 dark:text-red-300" },
+    mom_mode: { label: "Mom Mode 🌸", color: "bg-pink-500/15 text-pink-600 dark:text-pink-300" },
+    power_coach: { label: "Power Coach ⚡", color: "bg-amber-500/15 text-amber-600 dark:text-amber-300" },
+  };
+
+  const personaInfo = r.persona ? personaLabelMap[r.persona] : null;
+
   return (
-    <li className="shadow-card flex items-center gap-3 rounded-2xl border border-border bg-card p-3">
+    <li className="shadow-card flex items-center gap-3 rounded-2xl border border-border bg-card p-3 transition-all hover:border-primary/40">
       <div className="grid h-14 w-14 shrink-0 place-items-center rounded-2xl bg-lavender text-primary">
         <div className="text-center leading-tight">
           <div className="text-xs font-bold">{at.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }).split(" ")[0]}</div>
           <div className="text-[9px] font-bold">{at.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }).split(" ")[1] ?? ""}</div>
         </div>
       </div>
-      <div className="min-w-0 flex-1">
-        <div className="truncate text-sm font-bold">{r.title}</div>
-        <div className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[11px] text-muted-foreground">
+      <div className="min-w-0 flex-1 cursor-pointer" onClick={onEdit}>
+        <div className="flex items-center gap-1.5">
+          <span className="truncate text-sm font-bold text-foreground">{r.title}</span>
+          {r.ai_call && (
+            <span className="shrink-0 rounded-md bg-purple-500/15 p-0.5 text-purple-600 dark:text-purple-300" title="AI Voice Call">
+              <Sparkles className="h-3 w-3" />
+            </span>
+          )}
+        </div>
+        <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-[11px] text-muted-foreground">
           <span className="inline-flex items-center gap-0.5"><Clock className="h-3 w-3" /> {r.duration_minutes}m</span>
-          {r.repeat_mode !== "once" && (
+          {r.repeat_mode && r.repeat_mode !== "once" && (
             <span className="inline-flex items-center gap-0.5 capitalize"><Repeat className="h-3 w-3" /> {r.repeat_mode}</span>
+          )}
+          {personaInfo && (
+            <span className={cn("rounded-full px-1.5 py-0.5 text-[10px] font-semibold", personaInfo.color)}>
+              {personaInfo.label}
+            </span>
           )}
           <span className="rounded-full bg-lavender px-1.5 py-0.5 font-bold text-primary">{formatIn(r.scheduled_at)}</span>
         </div>
       </div>
-      <div className="flex flex-col gap-1.5">
-        <button onClick={onDone} className="grid h-8 w-8 place-items-center rounded-full bg-success/10 text-success" aria-label="Mark done">
+      <div className="flex flex-col gap-1.5 shrink-0">
+        <button
+          onClick={onEdit}
+          className="grid h-8 w-8 place-items-center rounded-full bg-primary/10 text-primary hover:bg-primary/20 transition-all active:scale-90"
+          aria-label="Edit call features"
+          title="Edit call features"
+        >
+          <Pencil className="h-4 w-4" />
+        </button>
+        <button
+          onClick={onDone}
+          className="grid h-8 w-8 place-items-center rounded-full bg-success/10 text-success hover:bg-success/20 transition-all active:scale-90"
+          aria-label="Mark done"
+          title="Mark done"
+        >
           <CheckCheck className="h-4 w-4" />
         </button>
-        <button onClick={onDelete} className="grid h-8 w-8 place-items-center rounded-full bg-destructive/10 text-destructive" aria-label="Cancel">
+        <button
+          onClick={onDelete}
+          className="grid h-8 w-8 place-items-center rounded-full bg-destructive/10 text-destructive hover:bg-destructive/20 transition-all active:scale-90"
+          aria-label="Cancel"
+          title="Cancel call"
+        >
           <Trash2 className="h-4 w-4" />
         </button>
       </div>
@@ -229,3 +304,4 @@ function formatIn(iso: string) {
   const days = Math.round(hrs / 24);
   return `in ${days}d`;
 }
+

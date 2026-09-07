@@ -21,6 +21,13 @@ export const createReminder = createServerFn({ method: "POST" })
   .inputValidator((d: unknown) => CreateSchema.parse(d))
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context;
+
+    // Ensure scheduled call/reminder is strictly in the future (buffer 60s for latency)
+    const scheduledTime = new Date(data.scheduled_at).getTime();
+    if (isNaN(scheduledTime) || scheduledTime < Date.now() - 60_000) {
+      throw new Error("Scheduled time must be in the future. Please choose a time after right now.");
+    }
+
     const { data: row, error } = await supabase
       .from("reminders")
       .insert({ ...data, user_id: userId })
@@ -68,6 +75,48 @@ export const updateReminderStatus = createServerFn({ method: "POST" })
       .eq("id", data.id);
     if (error) throw new Error(error.message);
     return { ok: true };
+  });
+
+const UpdateReminderSchema = z.object({
+  id: z.string().uuid(),
+  title: z.string().min(1).optional(),
+  type: z.enum(["study", "break", "revision", "custom"]).optional(),
+  scheduled_at: z.string().optional(),
+  duration_minutes: z.number().int().positive().optional(),
+  persona: z.string().optional(),
+  repeat_mode: z.enum(["once", "daily", "weekly", "custom"]).optional(),
+  alert_before_minutes: z.number().int().nonnegative().optional(),
+  quote: z.string().nullable().optional(),
+  strict_mode: z.boolean().optional(),
+  dont_miss: z.boolean().optional(),
+  ai_call: z.boolean().optional(),
+  status: z.enum(["scheduled", "done", "missed", "snoozed", "paused"]).optional(),
+});
+
+export const updateReminder = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) => UpdateReminderSchema.parse(d))
+  .handler(async ({ data, context }) => {
+    const { id, ...updates } = data;
+    const { supabase, userId } = context;
+
+    // If scheduled_at is updated, ensure it is strictly in the future
+    if (updates.scheduled_at) {
+      const scheduledTime = new Date(updates.scheduled_at).getTime();
+      if (isNaN(scheduledTime) || scheduledTime < Date.now() - 60_000) {
+        throw new Error("Scheduled time must be in the future. Please choose a time after right now.");
+      }
+    }
+
+    const { data: row, error } = await supabase
+      .from("reminders")
+      .update(updates)
+      .eq("id", id)
+      .eq("user_id", userId)
+      .select()
+      .single();
+    if (error) throw new Error(error.message);
+    return row;
   });
 
 const RescheduleReminderSchema = z.object({

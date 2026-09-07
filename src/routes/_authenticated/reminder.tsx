@@ -1,5 +1,5 @@
 import { createFileRoute, useRouter } from "@tanstack/react-router";
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
@@ -26,6 +26,7 @@ import {
   ChevronDown,
   Loader2,
   Sparkles,
+  AlertCircle,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import sanaAvatar from "@/assets/sana-avatar.png";
@@ -60,6 +61,15 @@ function AddReminderPage() {
     return toLocalInput(d);
   }, []);
 
+  const [minDateTime, setMinDateTime] = useState(() => toLocalInput(new Date()));
+
+  useEffect(() => {
+    const updateMin = () => setMinDateTime(toLocalInput(new Date()));
+    updateMin();
+    const interval = setInterval(updateMin, 30_000);
+    return () => clearInterval(interval);
+  }, []);
+
   const [title, setTitle] = useState("Functions & Modules Revision");
   const [type, setType] = useState<ReminderType>("study");
   const [when, setWhen] = useState(defaultWhen);
@@ -71,8 +81,18 @@ function AddReminderPage() {
   const [quote, setQuote] = useState("");
   const [strict, setStrict] = useState(true);
 
+  const selectedTimeMs = useMemo(() => {
+    const t = new Date(when).getTime();
+    return Number.isNaN(t) ? 0 : t;
+  }, [when]);
+
+  const isPast = selectedTimeMs > 0 && selectedTimeMs < Date.now();
+
   const mutation = useMutation({
     mutationFn: async () => {
+      if (isPast) {
+        throw new Error("Cannot set a reminder in the past. Please select a future time.");
+      }
       if ("Notification" in window && Notification.permission === "default") {
         try { await Notification.requestPermission(); } catch { /* ignore */ }
       }
@@ -171,21 +191,41 @@ function AddReminderPage() {
 
       {/* Date & Time */}
       <Section>
-        <Label>Date &amp; Time</Label>
-        <div className="mt-2 grid grid-cols-[auto_1fr] items-center gap-2 rounded-2xl border border-border bg-card px-3 py-2.5">
+        <div className="flex items-center justify-between">
+          <Label>Date &amp; Time</Label>
+          <span className="text-[10.5px] font-bold text-primary">Future time only</span>
+        </div>
+        <div
+          className={cn(
+            "mt-2 grid grid-cols-[auto_1fr] items-center gap-2 rounded-2xl border bg-card px-3 py-2.5 transition",
+            isPast ? "border-destructive/60 bg-destructive/5" : "border-border",
+          )}
+        >
           <div className="flex items-center gap-2">
-            <div className="grid h-9 w-9 place-items-center rounded-xl bg-lavender">
-              <CalendarDays className="h-4 w-4 text-primary" />
+            <div
+              className={cn(
+                "grid h-9 w-9 place-items-center rounded-xl",
+                isPast ? "bg-destructive/10 text-destructive" : "bg-lavender text-primary",
+              )}
+            >
+              <CalendarDays className="h-4 w-4" />
             </div>
-            <Clock className="h-4 w-4 text-primary" />
+            <Clock className={cn("h-4 w-4", isPast ? "text-destructive" : "text-primary")} />
           </div>
           <input
             type="datetime-local"
+            min={minDateTime}
             value={when}
             onChange={(e) => setWhen(e.target.value)}
             className="w-full bg-transparent text-[13px] font-bold outline-none"
           />
         </div>
+        {isPast && (
+          <div className="mt-2 flex items-center gap-1.5 text-[11px] font-semibold text-destructive">
+            <AlertCircle className="h-3.5 w-3.5 shrink-0" />
+            <span>Cannot schedule calls in the past. Please pick a time after right now ({new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}).</span>
+          </div>
+        )}
       </Section>
 
       {/* Duration */}
@@ -433,11 +473,11 @@ function AddReminderPage() {
       <div className="mx-4 mt-5">
         <button
           onClick={() => mutation.mutate()}
-          disabled={mutation.isPending || !title.trim()}
+          disabled={mutation.isPending || !title.trim() || isPast}
           className="gradient-primary shadow-soft flex h-14 w-full items-center justify-center gap-2 rounded-2xl text-[15px] font-extrabold text-primary-foreground disabled:opacity-60"
         >
           {mutation.isPending ? <Loader2 className="h-5 w-5 animate-spin" /> : <CheckCircle2 className="h-5 w-5" />}
-          {mutation.isPending ? "Setting…" : "Set Reminder"}
+          {mutation.isPending ? "Setting…" : isPast ? "Select Future Time" : "Set Reminder"}
         </button>
         <p className="mt-2 flex items-center justify-center gap-1 text-center text-[11px] text-muted-foreground">
           <Shield className="h-3 w-3" /> All your reminders are private and secure.

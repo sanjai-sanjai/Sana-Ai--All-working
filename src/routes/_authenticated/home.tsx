@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
@@ -33,12 +34,14 @@ import {
   ListTodo,
   Target,
   ArrowUpRight,
+  Pencil,
 } from "lucide-react";
 
 import { cn } from "@/lib/utils";
 import { listReminders, deleteReminder, updateReminderStatus } from "@/lib/reminders.functions";
 import { useReminderNotifications } from "@/hooks/use-reminder-notifications";
 import { toast } from "sonner";
+import { EditScheduledCallModal } from "@/components/voice/EditScheduledCallModal";
 
 export const Route = createFileRoute("/_authenticated/home")({
   component: HomePage,
@@ -503,6 +506,12 @@ type ReminderItem = {
   repeat_mode: string;
   status: string;
   duration_minutes: number;
+  persona?: string;
+  alert_before_minutes?: number;
+  strict_mode?: boolean;
+  dont_miss?: boolean;
+  ai_call?: boolean;
+  quote?: string | null;
 };
 
 function UpcomingAICall({
@@ -514,6 +523,9 @@ function UpcomingAICall({
   onDone: (id: string) => void;
   onDelete: (id: string) => void;
 }) {
+  const qc = useQueryClient();
+  const [editingReminder, setEditingReminder] = useState<ReminderItem | null>(null);
+
   const now = Date.now();
   const upcoming = reminders
     .filter((r) => r.status !== "done" && new Date(r.scheduled_at).getTime() > now)
@@ -557,7 +569,7 @@ function UpcomingAICall({
             <div className="h-12 w-12 shrink-0 overflow-hidden rounded-full shadow-sm ring-2 ring-white border-[1.5px] border-[#6366f1]/20 bg-[#f3f0ff]">
               <img src={replyAvatar} alt="Sana AI" className="h-full w-full object-cover" />
             </div>
-            <div className="min-w-0 flex-1">
+            <div className="min-w-0 flex-1 cursor-pointer" onClick={() => setEditingReminder(next)}>
               <div className="flex flex-wrap items-center gap-1.5">
                 <span className="text-[17px] font-black leading-none text-primary tabular-nums">
                   {new Date(next.scheduled_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
@@ -576,15 +588,23 @@ function UpcomingAICall({
             </div>
             <div className="flex flex-col gap-1.5">
               <button
+                onClick={() => setEditingReminder(next)}
+                className="grid h-8 w-8 place-items-center rounded-full bg-primary/15 text-primary transition-transform active:scale-90 hover:bg-primary/25"
+                aria-label="Edit call features"
+                title="Edit call features"
+              >
+                <Pencil className="h-4 w-4" />
+              </button>
+              <button
                 onClick={() => onDone(next.id)}
-                className="grid h-8 w-8 place-items-center rounded-full bg-success/15 text-success transition-transform active:scale-90"
+                className="grid h-8 w-8 place-items-center rounded-full bg-success/15 text-success transition-transform active:scale-90 hover:bg-success/25"
                 aria-label="Mark done"
               >
                 <CheckCheck className="h-4 w-4" />
               </button>
               <button
                 onClick={() => onDelete(next.id)}
-                className="grid h-8 w-8 place-items-center rounded-full bg-destructive/15 text-destructive transition-transform active:scale-90"
+                className="grid h-8 w-8 place-items-center rounded-full bg-destructive/15 text-destructive transition-transform active:scale-90 hover:bg-destructive/25"
                 aria-label="Cancel"
               >
                 <Trash2 className="h-4 w-4" />
@@ -596,7 +616,10 @@ function UpcomingAICall({
             <ul className="mt-3 space-y-1 border-t border-border/50 pt-2.5">
               {rest.map((r) => (
                 <li key={r.id} className="flex items-center justify-between gap-2 rounded-lg px-2 py-1.5 text-[12px] hover:bg-muted/40">
-                  <div className="flex min-w-0 flex-1 items-center gap-2 truncate">
+                  <div
+                    className="flex min-w-0 flex-1 items-center gap-2 truncate cursor-pointer"
+                    onClick={() => setEditingReminder(r)}
+                  >
                     <span className="font-bold text-primary tabular-nums">
                       {new Date(r.scheduled_at).toLocaleString([], {
                         weekday: "short",
@@ -606,15 +629,39 @@ function UpcomingAICall({
                     </span>
                     <span className="truncate text-muted-foreground">· {r.title}</span>
                   </div>
-                  <span className="shrink-0 text-[10px] font-semibold text-muted-foreground">
-                    {formatIn(r.scheduled_at)}
-                  </span>
+                  <div className="flex items-center gap-1.5 shrink-0">
+                    <button
+                      onClick={() => setEditingReminder(r)}
+                      className="p-1 text-muted-foreground hover:text-primary transition"
+                      title="Edit call"
+                    >
+                      <Pencil className="h-3.5 w-3.5" />
+                    </button>
+                    <button
+                      onClick={() => onDelete(r.id)}
+                      className="p-1 text-muted-foreground hover:text-destructive transition"
+                      title="Cancel call"
+                    >
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </button>
+                  </div>
                 </li>
               ))}
             </ul>
           )}
         </>
       )}
+
+      {/* In-place Edit Modal */}
+      <EditScheduledCallModal
+        isOpen={!!editingReminder}
+        reminder={editingReminder}
+        onClose={() => setEditingReminder(null)}
+        onSaved={() => {
+          qc.invalidateQueries({ queryKey: ["reminders"] });
+          setEditingReminder(null);
+        }}
+      />
 
       <Link
         to="/reminder"

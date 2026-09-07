@@ -245,6 +245,9 @@ Always maintain your identity as Sana AI 💕, their loyal learning partner.`;
 export function stopActiveAudio() {
   if (activeAudioElement) {
     try {
+      activeAudioElement.onplay = null;
+      activeAudioElement.onended = null;
+      activeAudioElement.onerror = null;
       activeAudioElement.pause();
       activeAudioElement.currentTime = 0;
       activeAudioElement.src = "";
@@ -252,7 +255,9 @@ export function stopActiveAudio() {
     activeAudioElement = null;
   }
   if (typeof window !== "undefined" && window.speechSynthesis) {
-    window.speechSynthesis.cancel();
+    try {
+      window.speechSynthesis.cancel();
+    } catch {}
   }
   activeUtterance = null;
 }
@@ -328,6 +333,195 @@ export function playAudioBase64(
 }
 
 /**
+ * Robust SpeechRecognition Supervisor
+ * - Eliminates Chromium device-lock race conditions with asynchronous spacing and safe teardown
+ * - Prevents STT freeze after 2-3 turns through onend automatic recovery
+ * - Supports continuous 10-30+ turn conversations without dying on pauses
+ * - Cleanly restarts fresh instances without invalid state reuse
+ */
+class SpeechSupervisor {
+  private activeInstance: any = null;
+  private isDestroyed = false;
+  private isStarting = false;
+  private isSpeaking = false;
+  private isProcessing = false;
+  private startTimer: any = null;
+  private recoveryTimer: any = null;
+  private lastStartAttemptMs = 0;
+
+  constructor(
+    private config: WebCallConfig,
+    private events: VapiCallEvents,
+    private onFinalTranscript: (text: string) => void,
+    private onBargeIn?: () => void
+  ) {}
+
+  public setSpeaking(speaking: boolean) {
+    this.isSpeaking = speaking;
+    if (speaking) {
+      // Pause active listening while Sana speaks to prevent echo feedback into mic
+      this.stopRecognition();
+    } else {
+      // Sana finished speaking: resume listening after short acoustic settling buffer
+      if (!this.isProcessing && !this.isDestroyed) {
+        this.startListening(150);
+      }
+    }
+  }
+
+  public setProcessing(processing: boolean) {
+    this.isProcessing = processing;
+    if (processing) {
+      this.stopRecognition();
+    }
+  }
+
+  public startListening(delayMs = 100) {
+    if (this.isDestroyed || this.isSpeaking || this.isProcessing) return;
+    this.clearTimers();
+
+    this.startTimer = setTimeout(() => {
+      this.initiateRecognition();
+    }, delayMs);
+  }
+
+  private initiateRecognition() {
+    if (this.isDestroyed || this.isSpeaking || this.isProcessing || this.isStarting) return;
+    if (typeof window === "undefined") return;
+
+    const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+    if (!SpeechRecognition) {
+      console.warn("[STT] Web Speech API not supported in this browser environment");
+      return;
+    }
+
+    // Ensure minimum spacing between recognition sessions to avoid Chromium device lock collisions
+    const elapsed = Date.now() - this.lastStartAttemptMs;
+    if (elapsed < 120) {
+      this.scheduleRecovery(120 - elapsed);
+      return;
+    }
+
+    // Cleanly tear down any lingering instance before instantiating a new one
+    if (this.activeInstance) {
+      try {
+        this.activeInstance.onresult = null;
+        this.activeInstance.onerror = null;
+        this.activeInstance.onend = null;
+        this.activeInstance.abort();
+      } catch {}
+      this.activeInstance = null;
+    }
+
+    try {
+      this.isStarting = true;
+      this.lastStartAttemptMs = Date.now();
+      const recognition = new SpeechRecognition();
+      this.activeInstance = recognition;
+      recognition.continuous = false;
+      recognition.interimResults = false;
+      recognition.lang = getSpeechRecognitionLang(this.config.language);
+
+      let captured = false;
+
+      recognition.onstart = () => {
+        this.isStarting = false;
+        if (this.isDestroyed || this.activeInstance !== recognition) {
+          try { recognition.abort(); } catch {}
+          return;
+        }
+        console.log("[STT] Listening active (ready for user speech)");
+        this.events.onVoiceStateChange?.("listening");
+      };
+
+      recognition.onresult = (event: any) => {
+        if (this.isDestroyed || this.activeInstance !== recognition) return;
+
+        const transcript = event.results[0]?.[0]?.transcript?.trim();
+        if (transcript) {
+          captured = true;
+          console.log("[STT] User speech captured:", transcript);
+          this.events.onTranscript?.("user", transcript);
+          this.stopRecognition();
+          this.onFinalTranscript(transcript);
+        }
+      };
+
+      recognition.onerror = (err: any) => {
+        this.isStarting = false;
+        console.log("[STT] Recognition error:", err.error);
+        if (this.isDestroyed) return;
+
+        // On no-speech: if not speaking and no final transcript captured, recover safely with fresh instance
+        if (err.error === "no-speech" && !captured && !this.isSpeaking && !this.isProcessing) {
+          this.scheduleRecovery(250);
+        } else if ((err.error === "audio-capture" || err.error === "network") && !captured) {
+          this.scheduleRecovery(500);
+        }
+      };
+
+      recognition.onend = () => {
+        this.isStarting = false;
+        console.log("[STT] Recognition onend fired");
+        if (this.activeInstance === recognition) {
+          this.activeInstance = null;
+        }
+
+        // Automatic persistent recovery: If call is active and user didn't speak or timed out,
+        // restart listening cleanly so the call stays alive indefinitely!
+        if (!this.isDestroyed && !this.isSpeaking && !this.isProcessing && !captured) {
+          this.scheduleRecovery(180);
+        }
+      };
+
+      recognition.start();
+    } catch (err) {
+      this.isStarting = false;
+      console.warn("[STT] Recognition start failed, scheduling recovery:", err);
+      if (!this.isDestroyed && !this.isSpeaking && !this.isProcessing) {
+        this.scheduleRecovery(350);
+      }
+    }
+  }
+
+  private scheduleRecovery(delayMs: number) {
+    if (this.isDestroyed || this.isSpeaking || this.isProcessing) return;
+    this.clearTimers();
+    this.recoveryTimer = setTimeout(() => {
+      if (!this.isDestroyed && !this.isSpeaking && !this.isProcessing) {
+        this.initiateRecognition();
+      }
+    }, delayMs);
+  }
+
+  public stopRecognition() {
+    this.clearTimers();
+    if (this.activeInstance) {
+      try {
+        this.activeInstance.onresult = null;
+        this.activeInstance.onerror = null;
+        this.activeInstance.onend = null;
+        this.activeInstance.abort();
+      } catch {}
+      this.activeInstance = null;
+    }
+    this.isStarting = false;
+  }
+
+  private clearTimers() {
+    if (this.startTimer) clearTimeout(this.startTimer);
+    if (this.recoveryTimer) clearTimeout(this.recoveryTimer);
+    this.startTimer = null;
+    this.recoveryTimer = null;
+  }
+
+  public destroy() {
+    this.isDestroyed = true;
+    this.stopRecognition();
+  }
+}
+
+/**
  * Web Speech API Fallback Engine (Guarantees 100% interactive AI voice experience)
  */
 function startWebSpeechFallback(
@@ -337,35 +531,34 @@ function startWebSpeechFallback(
 ): () => void {
   const topic = config.topic || config.reminderTitle || "your study session";
   let isCleanedUp = false;
-  let isSpeaking = false;
   const conversationHistory: Array<{ role: "assistant" | "user"; content: string }> = [];
+
+  let supervisor: SpeechSupervisor | null = null;
 
   const cleanup = () => {
     isCleanedUp = true;
     stopActiveAudio();
-    if (speechRecognition) {
-      try {
-        speechRecognition.abort();
-      } catch {}
-      speechRecognition = null;
+    if (supervisor) {
+      supervisor.destroy();
+      supervisor = null;
     }
     events.onVoiceStateChange?.("idle");
   };
 
   const speakTurn = (text: string, audioBase64?: string | null, onDone?: () => void) => {
     if (isCleanedUp) return;
-    isSpeaking = true;
+    supervisor?.setSpeaking(true);
     events.onVoiceStateChange?.("speaking");
     events.onTranscript?.("assistant", text);
 
     const finish = () => {
-      isSpeaking = false;
       if (isCleanedUp) return;
+      supervisor?.setSpeaking(false);
       events.onVoiceStateChange?.("idle");
       if (onDone) {
         onDone();
       } else {
-        startListeningLoop();
+        supervisor?.startListening(150);
       }
     };
 
@@ -375,7 +568,6 @@ function startWebSpeechFallback(
         events,
         finish,
         () => {
-          // Fallback to Web Speech Synthesis if audio playback fails
           speakTextActual(text, events, finish, config.language);
         }
       );
@@ -384,75 +576,78 @@ function startWebSpeechFallback(
     }
   };
 
-  const startListeningLoop = () => {
-    if (isCleanedUp || isSpeaking) return;
-    events.onVoiceStateChange?.("listening");
+  const onUserSpeechResult = async (transcript: string) => {
+    if (isCleanedUp) return;
+    supervisor?.setProcessing(true);
+    conversationHistory.push({ role: "user", content: transcript });
+    events.onVoiceStateChange?.("thinking");
 
-    listenUserVoiceLoop(config, events, async (transcript) => {
+    try {
+      // Sliding window of past 16 messages to maintain conversational context
+      const boundedMessages = conversationHistory.slice(-16);
+
+      const turnResult = await generateWebCallTurn({
+        data: {
+          reminderTitle: config.reminderTitle,
+          topic: config.topic,
+          userName: config.userName,
+          persona: config.persona,
+          language: config.language || "en",
+          messages: boundedMessages,
+        },
+      });
+
       if (isCleanedUp) return;
-      conversationHistory.push({ role: "user", content: transcript });
-      events.onVoiceStateChange?.("thinking");
 
-      try {
-        const turnResult = await generateWebCallTurn({
-          data: {
-            reminderTitle: config.reminderTitle,
-            topic: config.topic,
-            userName: config.userName,
-            persona: config.persona,
-            language: config.language || "en",
-            messages: conversationHistory,
-          },
-        });
-
-        if (isCleanedUp) return;
-
-        let rescheduleMins = turnResult.rescheduleMinutes;
-        // Dual-check with regex parser for natural phrases like "call me after 5 minutes"
-        if (!rescheduleMins) {
-          const parsed = parseSnoozeMinutes(transcript);
-          if (parsed > 0) {
-            rescheduleMins = parsed;
-          }
+      let rescheduleMins = turnResult.rescheduleMinutes;
+      if (!rescheduleMins) {
+        const parsed = parseSnoozeMinutes(transcript);
+        if (parsed > 0) {
+          rescheduleMins = parsed;
         }
-
-        conversationHistory.push({ role: "assistant", content: turnResult.spokenText });
-
-        if (rescheduleMins && rescheduleMins > 0) {
-          const formatted = await executeRescheduleReminder(config.reminderId, rescheduleMins, config);
-          events.onRescheduled?.(formatted, rescheduleMins);
-          speakTurn(turnResult.spokenText, turnResult.audioBase64, () => {
-            setTimeout(() => {
-              if (!isCleanedUp) {
-                events.onStatusChange?.("ended");
-              }
-            }, 1200);
-          });
-          return;
-        }
-
-        if (turnResult.endCall) {
-          speakTurn(turnResult.spokenText, turnResult.audioBase64, () => {
-            setTimeout(() => {
-              if (!isCleanedUp) {
-                events.onStatusChange?.("ended");
-              }
-            }, 1200);
-          });
-          return;
-        }
-
-        // Continuous turn-taking: Speak Sana's contextual answer, then listen again!
-        speakTurn(turnResult.spokenText, turnResult.audioBase64, () => {
-          startListeningLoop();
-        });
-      } catch (err) {
-        console.warn("AI generation error, using smart fallback intent handler:", err);
-        // Fallback to local rule processor to ensure 100% reliability
-        await processUserResponseIntent(transcript, config, events);
       }
-    });
+
+      conversationHistory.push({ role: "assistant", content: turnResult.spokenText });
+      supervisor?.setProcessing(false);
+
+      if (rescheduleMins && rescheduleMins > 0) {
+        const formatted = await executeRescheduleReminder(config.reminderId, rescheduleMins, config);
+        events.onRescheduled?.(formatted, rescheduleMins);
+        speakTurn(turnResult.spokenText, turnResult.audioBase64, () => {
+          setTimeout(() => {
+            if (!isCleanedUp) {
+              events.onStatusChange?.("ended");
+            }
+          }, 1200);
+        });
+        return;
+      }
+
+      if (turnResult.endCall) {
+        speakTurn(turnResult.spokenText, turnResult.audioBase64, () => {
+          setTimeout(() => {
+            if (!isCleanedUp) {
+              events.onStatusChange?.("ended");
+            }
+          }, 1200);
+        });
+        return;
+      }
+
+      // Continuous multi-turn conversation: Speak Sana's response, then automatically resume listening!
+      speakTurn(turnResult.spokenText, turnResult.audioBase64, () => {
+        supervisor?.startListening(150);
+      });
+    } catch (err) {
+      console.warn("AI generation error, falling back to local intent parser:", err);
+      supervisor?.setProcessing(false);
+      await processUserResponseIntent(transcript, config, events, () => {
+        supervisor?.startListening(150);
+      });
+    }
   };
+
+  supervisor = new SpeechSupervisor(config, events, onUserSpeechResult);
 
   // Kick off first turn: warm greeting
   setTimeout(async () => {
@@ -474,12 +669,12 @@ function startWebSpeechFallback(
       const synthRes = await synthesizeSpeechServerFn({ data: { text: initialText } });
       if (isCleanedUp) return;
       speakTurn(initialText, synthRes.audioBase64, () => {
-        startListeningLoop();
+        supervisor?.startListening(150);
       });
     } catch {
       if (isCleanedUp) return;
       speakTurn(initialText, null, () => {
-        startListeningLoop();
+        supervisor?.startListening(150);
       });
     }
   }, 600);
@@ -655,64 +850,21 @@ function getSpeechRecognitionLang(langPreference?: string): string {
 }
 
 function listenUserVoiceLoop(
-  _config: WebCallConfig,
+  config: WebCallConfig,
   events: VapiCallEvents,
   onSpeechResult: (text: string) => void
-) {
-  if (typeof window === "undefined") return;
-
-  const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
-  if (!SpeechRecognition) {
-    return;
-  }
-
-  try {
-    if (speechRecognition) {
-      try {
-        speechRecognition.abort();
-      } catch {}
-      speechRecognition = null;
-    }
-
-    const recognition = new SpeechRecognition();
-    speechRecognition = recognition;
-    recognition.continuous = false;
-    recognition.interimResults = false;
-    recognition.lang = getSpeechRecognitionLang(_config.language);
-
-    let captured = false;
-
-    recognition.onresult = (event: any) => {
-      captured = true;
-      const transcript = event.results[0]?.[0]?.transcript;
-      if (transcript && transcript.trim()) {
-        events.onTranscript?.("user", transcript.trim());
-        onSpeechResult(transcript.trim());
-      }
-    };
-
-    recognition.onerror = (err: any) => {
-      // If error is no-speech and nothing was captured, safely try listening again
-      if (err.error === "no-speech" && !captured && speechRecognition === recognition) {
-        setTimeout(() => {
-          if (speechRecognition === recognition) {
-            try {
-              recognition.start();
-            } catch {}
-          }
-        }, 500);
-      }
-    };
-
-    recognition.start();
-  } catch (err) {
-    console.warn("Speech recognition start failed:", err);
-  }
+): SpeechSupervisor {
+  const supervisor = new SpeechSupervisor(config, events, onSpeechResult);
+  supervisor.startListening(100);
+  return supervisor;
 }
 
 function listenUserVoice(config: WebCallConfig, events: VapiCallEvents) {
-  listenUserVoiceLoop(config, events, async (transcript) => {
-    await processUserResponseIntent(transcript, config, events);
+  let supervisor: SpeechSupervisor | null = null;
+  supervisor = listenUserVoiceLoop(config, events, async (transcript) => {
+    await processUserResponseIntent(transcript, config, events, () => {
+      supervisor?.startListening(150);
+    });
   });
 }
 
@@ -793,14 +945,14 @@ function parseSnoozeMinutes(text: string): number {
 export async function processUserResponseIntent(
   userText: string,
   config: WebCallConfig,
-  events: VapiCallEvents
+  events: VapiCallEvents,
+  onContinue?: () => void
 ) {
   const lower = userText.toLowerCase();
   const lang = config.language || "en";
 
-  // Reschedule intent parsing
+  // 1. Reschedule intent parsing
   const snoozeMins = parseSnoozeMinutes(lower);
-
   if (snoozeMins > 0) {
     const formatted = await executeRescheduleReminder(config.reminderId, snoozeMins, config);
     events.onRescheduled?.(formatted, snoozeMins);
@@ -824,44 +976,34 @@ export async function processUserResponseIntent(
     } catch {}
 
     speakText(reply, events, () => {
-      setTimeout(() => events.onStatusChange?.("ended"), 2000);
+      setTimeout(() => events.onStatusChange?.("ended"), 1500);
     }, lang);
     return;
   }
 
-  if (
-    lower.includes("motivate") || lower.includes("not motivated") || lower.includes("can't focus") ||
-    lower.includes("பயமா") || lower.includes("மூட் இல்ல") || lower.includes("हिम्मत")
-  ) {
-    let reply = `You've got this! Small steps every day add up to massive achievements. Just spend 10 focused minutes on ${config.reminderTitle || "your study"} now!`;
+  // 2. Explicit Call Termination (ONLY when user explicitly requests to stop/hang up)
+  const isExplicitStop =
+    lower.includes("stop the call") ||
+    lower.includes("end the call") ||
+    lower.includes("end call") ||
+    lower.includes("hang up") ||
+    lower.includes("bye sana") ||
+    lower.includes("goodbye") ||
+    lower.includes("i have to go") ||
+    lower.includes("got to go") ||
+    lower.includes("போனை வை") ||
+    lower.includes("கால் முடி") ||
+    lower.includes("कॉल काटो") ||
+    lower.includes("अलविदा") ||
+    lower.trim() === "stop" ||
+    lower.trim() === "bye";
+
+  if (isExplicitStop) {
+    let reply = "Alright! Go crush your goals today. Talk to you soon!";
     if (lang === "ta" || /[\u0B80-\u0BFF]/.test(lower)) {
-      reply = `உங்களால் நிச்சயம் முடியும்! தினமும் செய்யும் சிறிய முயற்சி பெரிய வெற்றியைத் தரும். உடனே ஆரம்பியுங்கள்!`;
+      reply = "சரிங்க! உங்கள் இலக்கை அடைய வாழ்த்துகள். பிறகு பேசலாம்!";
     } else if (lang === "hi" || /[\u0900-\u097F]/.test(lower)) {
-      reply = `आप कर सकते हैं! हर दिन के छोटे कदम बड़ी सफलता लाते हैं। बस 10 मिनट के लिए पढ़ाई शुरू करें!`;
-    }
-
-    try {
-      const synth = await synthesizeSpeechServerFn({ data: { text: reply } });
-      if (synth.audioBase64) {
-        events.onTranscript?.("assistant", reply);
-        playAudioBase64(synth.audioBase64, events);
-        return;
-      }
-    } catch {}
-
-    speakText(reply, events, undefined, lang);
-    return;
-  }
-
-  if (
-    lower.includes("study now") || lower.includes("start now") || lower.includes("ready") || lower.includes("yes") ||
-    lower.includes("தயார்") || lower.includes("படிக்கிறேன்") || lower.includes("हाँ") || lower.includes("तैयार")
-  ) {
-    let reply = `Awesome energy! I'll let you focus. Have a fantastic study session!`;
-    if (lang === "ta" || /[\u0B80-\u0BFF]/.test(lower)) {
-      reply = `அருமை! நீங்கள் கவனமாகப் படியுங்கள். வாழ்த்துகள்!`;
-    } else if (lang === "hi" || /[\u0900-\u097F]/.test(lower)) {
-      reply = `बहुत बढ़िया! अब आप ध्यान लगाकर पढ़ाई करें। ऑल द बेस्ट!`;
+      reply = "ठीक है! आज मन लगाकर पढ़ाई करें। फिर बात करते हैं!";
     }
 
     try {
@@ -876,13 +1018,72 @@ export async function processUserResponseIntent(
     } catch {}
 
     speakText(reply, events, () => {
-      setTimeout(() => events.onStatusChange?.("ended"), 2000);
+      setTimeout(() => events.onStatusChange?.("ended"), 1500);
     }, lang);
     return;
   }
 
-  // Generic encouraging AI response
-  let genericReply = `Got it! Let's conquer ${config.reminderTitle || "this topic"}. I'm right here with you whenever you need help!`;
+  // 3. Motivation requests
+  if (
+    lower.includes("motivate") || lower.includes("not motivated") || lower.includes("can't focus") ||
+    lower.includes("பயமா") || lower.includes("மூட் இல்ல") || lower.includes("हिम्मत")
+  ) {
+    let reply = `You've got this! Small steps every day add up to massive achievements. What concept shall we tackle in the next 10 minutes?`;
+    if (lang === "ta" || /[\u0B80-\u0BFF]/.test(lower)) {
+      reply = `உங்களால் நிச்சயம் முடியும்! தினமும் செய்யும் சிறிய முயற்சி பெரிய வெற்றியைத் தரும். உடனே ஆரம்பியுங்கள்!`;
+    } else if (lang === "hi" || /[\u0900-\u097F]/.test(lower)) {
+      reply = `आप कर सकते हैं! हर दिन के छोटे कदम बड़ी सफलता लाते हैं। बस 10 मिनट के लिए पढ़ाई शुरू करें!`;
+    }
+
+    try {
+      const synth = await synthesizeSpeechServerFn({ data: { text: reply } });
+      if (synth.audioBase64) {
+        events.onTranscript?.("assistant", reply);
+        playAudioBase64(synth.audioBase64, events, () => {
+          onContinue?.();
+        });
+        return;
+      }
+    } catch {}
+
+    speakText(reply, events, () => {
+      onContinue?.();
+    }, lang);
+    return;
+  }
+
+  // 4. Affirmation / Ready / Start / Yes / Okay / Sure / Alright — KEEP CALL ACTIVE!
+  if (
+    lower.includes("study now") || lower.includes("start now") || lower.includes("ready") || lower.includes("yes") ||
+    lower.includes("okay") || lower.includes("sure") || lower.includes("alright") || lower.includes("got it") ||
+    lower.includes("தயார்") || lower.includes("படிக்கிறேன்") || lower.includes("हाँ") || lower.includes("तैयार")
+  ) {
+    let reply = `Awesome! Open up your materials for ${config.reminderTitle || "your study"}. What specific topic or problem are you opening first?`;
+    if (lang === "ta" || /[\u0B80-\u0BFF]/.test(lower)) {
+      reply = `அருமை! புத்தகத்தைத் திறந்து எந்தப் பாடத்தை முதலில் படிக்கப் போகிறீர்கள் என்று சொல்லுங்கள்!`;
+    } else if (lang === "hi" || /[\u0900-\u097F]/.test(lower)) {
+      reply = `बहुत बढ़िया! अपनी पढ़ाई शुरू करें। आप सबसे पहले कौन सा टॉपिक पढ़ने जा रहे हैं?`;
+    }
+
+    try {
+      const synth = await synthesizeSpeechServerFn({ data: { text: reply } });
+      if (synth.audioBase64) {
+        events.onTranscript?.("assistant", reply);
+        playAudioBase64(synth.audioBase64, events, () => {
+          onContinue?.();
+        });
+        return;
+      }
+    } catch {}
+
+    speakText(reply, events, () => {
+      onContinue?.();
+    }, lang);
+    return;
+  }
+
+  // 5. Generic encouraging AI response — KEEP CALL ACTIVE!
+  let genericReply = `Got it! Let's conquer ${config.reminderTitle || "this topic"}. What are you working on right now?`;
   if (lang === "ta" || /[\u0B80-\u0BFF]/.test(lower)) {
     genericReply = `சரிங்க! உங்கள் பாடத்தை ஆரம்பிக்கலாம். உங்களுக்கு உதவ நான் எப்போதும் தயார்!`;
   } else if (lang === "hi" || /[\u0900-\u097F]/.test(lower)) {
@@ -893,10 +1094,14 @@ export async function processUserResponseIntent(
     const synth = await synthesizeSpeechServerFn({ data: { text: genericReply } });
     if (synth.audioBase64) {
       events.onTranscript?.("assistant", genericReply);
-      playAudioBase64(synth.audioBase64, events);
+      playAudioBase64(synth.audioBase64, events, () => {
+        onContinue?.();
+      });
       return;
     }
   } catch {}
 
-  speakText(genericReply, events, undefined, lang);
+  speakText(genericReply, events, () => {
+    onContinue?.();
+  }, lang);
 }

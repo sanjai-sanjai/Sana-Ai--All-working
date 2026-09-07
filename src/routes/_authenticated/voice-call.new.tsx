@@ -3,7 +3,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
-import { ArrowLeft, Phone, Sparkles } from "lucide-react";
+import { ArrowLeft, Phone, Sparkles, AlertCircle } from "lucide-react";
 import { TopBar } from "@/components/app/TopBar";
 import { PhoneInput } from "@/components/app/PhoneInput";
 import { PERSONALITIES, type AiPersonality } from "@/lib/sana";
@@ -45,6 +45,15 @@ function NewVoiceCallPage() {
   const [persona, setPersona] = useState<AiPersonality>("friendly_coach");
   const [when, setWhen] = useState(() => toLocalInput(new Date(Date.now() + 5 * 60_000)));
   const [repeat, setRepeat] = useState<"once" | "daily" | "weekly">("once");
+  const [minDateTime, setMinDateTime] = useState(() => toLocalInput(new Date()));
+
+  // Keep minDateTime updated in real time
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setMinDateTime(toLocalInput(new Date()));
+    }, 30_000);
+    return () => clearInterval(interval);
+  }, []);
 
   useEffect(() => {
     if (phoneData && typeof phoneData === "object" && "phone" in phoneData) {
@@ -54,17 +63,22 @@ function NewVoiceCallPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [phoneData]);
 
+  const scheduledTimeMs = useMemo(() => new Date(when).getTime(), [when]);
+  const isPast = useMemo(() => isNaN(scheduledTimeMs) || scheduledTimeMs <= Date.now(), [scheduledTimeMs]);
   const scheduledIso = useMemo(() => new Date(when).toISOString(), [when]);
 
   const createMut = useMutation({
-    mutationFn: (testNow: boolean) =>
-      (create({
+    mutationFn: (testNow: boolean) => {
+      if (!testNow && isPast) {
+        throw new Error("Scheduled time must be in the future. Please choose a time after right now.");
+      }
+      return (create({
         data: {
           title,
           phone_e164: phone.trim(),
           study_topic: topic.trim() || null,
           motivation_style: persona,
-          scheduled_at: scheduledIso,
+          scheduled_at: testNow ? new Date().toISOString() : scheduledIso,
           repeat_type: repeat,
         },
       }) as unknown as Promise<{ id: string }>).then(async (row) => {
@@ -72,7 +86,8 @@ function NewVoiceCallPage() {
           await (test({ data: { id: row.id } }) as unknown as Promise<unknown>);
         }
         return row;
-      }),
+      });
+    },
     onSuccess: (_row, testNow) => {
       qc.invalidateQueries({ queryKey: ["voice-reminders"] });
       qc.invalidateQueries({ queryKey: ["reminders"] });
@@ -119,13 +134,25 @@ function NewVoiceCallPage() {
           />
         </Field>
 
-        <Field label="When">
+        <Field label="When" hint={`Only future times after ${new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}`}>
           <input
-            className="h-11 w-full rounded-2xl border border-border bg-card px-3 text-sm font-semibold outline-none focus:border-primary"
+            className={cn(
+              "h-11 w-full rounded-2xl border px-3 text-sm font-semibold outline-none transition",
+              isPast
+                ? "border-destructive/80 bg-destructive/5 text-destructive focus:border-destructive"
+                : "border-border bg-card text-foreground focus:border-primary"
+            )}
             type="datetime-local"
+            min={minDateTime}
             value={when}
             onChange={(e) => setWhen(e.target.value)}
           />
+          {isPast && (
+            <div className="mt-1.5 flex items-center gap-1.5 text-[11px] font-semibold text-destructive">
+              <AlertCircle className="h-3.5 w-3.5 shrink-0" />
+              <span>Please pick a time after right now ({new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}).</span>
+            </div>
+          )}
         </Field>
 
         <Field label="Repeat">
@@ -170,9 +197,9 @@ function NewVoiceCallPage() {
 
       <section className="mx-5 mt-6 space-y-2">
         <button
-          disabled={!phoneOk || createMut.isPending}
+          disabled={!phoneOk || isPast || createMut.isPending}
           onClick={() => createMut.mutate(false)}
-          className="gradient-primary shadow-soft flex h-12 w-full items-center justify-center gap-2 rounded-2xl text-sm font-bold text-primary-foreground disabled:opacity-50"
+          className="gradient-primary shadow-soft flex h-12 w-full items-center justify-center gap-2 rounded-2xl text-sm font-bold text-primary-foreground disabled:opacity-50 transition"
         >
           <Phone className="h-4 w-4" /> Schedule call
         </button>

@@ -106,23 +106,24 @@ CRITICAL MULTILINGUAL INSTRUCTIONS:
 5. NEVER use markdown formatting (no asterisks, bold, lists), NO emojis, and NO symbols because this is read aloud by a voice model.
 
 INTENT HANDLING:
-- RESCHEDULE / SNOOZE: If the student asks to call back later, reschedule, or mentions any time delay in ANY language (e.g. "call me after 5 minutes", "5 நிமிஷம் கழிச்சு கூப்பிடு", "5 मिनट बाद कॉल करना", "llámame en 5 minutos", "rappelle-moi dans 5 minutes"):
+- PERSISTENT CONVERSATION (CRITICAL):
+  * The call must REMAIN ACTIVE across multiple turns (10, 20, 30+ turns).
+  * DO NOT terminate the call when the student says "Okay", "Sure", "Yes", "I'll start now", "Alright", "Got it", or agrees to study!
+  * If the student says they are ready or starting now: Celebrate their momentum, encourage them, and ask an engaging follow-up (e.g. "Awesome! What specific concept or chapter are you opening first?"). Keep the conversation going!
+
+- RESCHEDULE / SNOOZE: If the student explicitly asks to call back later, reschedule, or mentions any time delay in ANY language (e.g. "call me after 5 minutes", "5 நிமிஷம் கழிச்சு கூப்பிடு", "5 मिनट बाद कॉल करना", "llámame en 5 minutos"):
   * Acknowledge warmly and confirm the callback time in the student's language.
   * On the very last line of your output, output ONLY: SCHEDULE_FOLLOWUP:<minutes>
   * Example:
     கண்டிப்பா! 5 நிமிஷம் கழிச்சு நான் திரும்ப கூப்பிடுறேன்.
     SCHEDULE_FOLLOWUP:5
 
-- READY TO STUDY: If the student says they are ready to study now, or starting now (in any language):
-  * Wish them a great session with positive energy in their language.
+- EXPLICIT CALL TERMINATION ONLY: Output END_CALL on its own final line ONLY if the student explicitly says to hang up or end the conversation (e.g. "Stop", "Stop the call", "End the call", "Hang up", "Bye Sana", "I have to leave now", "போனை வை", "कॉल काटो"):
+  * Say a brief, warm goodbye in the student's language.
   * On the very last line of your output, output ONLY: END_CALL
 
-- END CALL: If the student says bye, thank you, or wants to hang up:
-  * Say a brief warm goodbye in their language.
-  * On the very last line of your output, output ONLY: END_CALL
-
-- QUESTIONS / MOTIVATION / CHAT:
-  * Answer directly, motivate them, and ask an engaging follow-up to guide them into studying.`;
+- QUESTIONS / MOTIVATION / STUDY COACHING / CHAT:
+  * Answer directly, motivate them, give quick study tips, and ask an engaging follow-up to guide them into deep focus.`;
 
   let turnResult: WebCallTurnResult;
 
@@ -221,16 +222,44 @@ function generateFallbackTurn(userText: string, title: string): WebCallTurnResul
     };
   }
 
-  if (lower.includes("ready") || lower.includes("study now") || lower.includes("start") || lower.includes("yes")) {
+  if (
+    lower.includes("stop") ||
+    lower.includes("end call") ||
+    lower.includes("end the call") ||
+    lower.includes("cut the call") ||
+    lower.includes("hang up") ||
+    lower.includes("bye") ||
+    lower.includes("got to go") ||
+    lower.includes("போனை வை") ||
+    lower.includes("கால் முடி") ||
+    lower.includes("कॉल काटो")
+  ) {
     return {
-      spokenText: `Awesome energy! Go crush your ${title} session. I will let you focus now!`,
+      spokenText: "Alright! Go crush your goals today. Talk to you soon!",
       rescheduleMinutes: null,
       endCall: true,
     };
   }
 
+  if (
+    lower.includes("ready") ||
+    lower.includes("study now") ||
+    lower.includes("start") ||
+    lower.includes("yes") ||
+    lower.includes("okay") ||
+    lower.includes("sure") ||
+    lower.includes("alright") ||
+    lower.includes("got it")
+  ) {
+    return {
+      spokenText: `Awesome energy! Open your study materials for ${title}. What specific topic or problem are you starting with?`,
+      rescheduleMinutes: null,
+      endCall: false,
+    };
+  }
+
   return {
-    spokenText: `You have got this! Even 10 focused minutes on ${title} will make a huge difference. Ready to try?`,
+    spokenText: `You have got this! Even 10 focused minutes on ${title} will make a huge difference. What are you working on right now?`,
     rescheduleMinutes: null,
     endCall: false,
   };

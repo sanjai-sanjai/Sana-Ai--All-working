@@ -30,6 +30,13 @@ export const createVoiceCallReminder = createServerFn({ method: "POST" })
   .inputValidator((d: unknown) => CreateSchema.parse(d))
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context;
+
+    // Ensure scheduled voice call is strictly in the future (buffer 60s for latency)
+    const scheduledTime = new Date(data.scheduled_at).getTime();
+    if (isNaN(scheduledTime) || scheduledTime < Date.now() - 60_000) {
+      throw new Error("Scheduled time must be in the future. Please choose a time after right now.");
+    }
+
     const { data: row, error } = await supabase
       .from("study_call_reminders")
       .insert({
@@ -49,6 +56,65 @@ export const createVoiceCallReminder = createServerFn({ method: "POST" })
     // Persist phone on profile for convenience
     await supabase.from("profiles").update({ phone_e164: data.phone_e164 }).eq("user_id", userId);
 
+    // Mirror to reminders table so it displays in Upcoming AI Calls
+    try {
+      await supabase.from("reminders").insert({
+        user_id: userId,
+        title: data.title,
+        type: "study",
+        scheduled_at: data.scheduled_at,
+        duration_minutes: 25,
+        persona: data.motivation_style,
+        repeat_mode: data.repeat_type,
+        alert_before_minutes: 10,
+        strict_mode: true,
+        dont_miss: true,
+        ai_call: true,
+        status: "scheduled",
+      });
+    } catch (e) {
+      console.warn("Could not mirror voice call to reminders:", e);
+    }
+
+    return row;
+  });
+
+const UpdateVoiceCallSchema = z.object({
+  id: z.string().uuid(),
+  title: z.string().min(1).max(120).optional(),
+  phone_e164: PhoneSchema.optional(),
+  study_topic: z.string().max(200).nullable().optional(),
+  motivation_style: z.enum(["friendly_coach", "strict_mentor", "mom_mode", "power_coach"]).optional(),
+  scheduled_at: z.string().optional(),
+  repeat_type: z.enum(["once", "daily", "weekly"]).optional(),
+});
+
+export const updateVoiceCallReminder = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) => UpdateVoiceCallSchema.parse(d))
+  .handler(async ({ data, context }) => {
+    const { id, ...updates } = data;
+    const { supabase, userId } = context;
+
+    // If scheduled_at is updated, ensure it is strictly in the future
+    if (updates.scheduled_at) {
+      const scheduledTime = new Date(updates.scheduled_at).getTime();
+      if (isNaN(scheduledTime) || scheduledTime < Date.now() - 60_000) {
+        throw new Error("Scheduled time must be in the future. Please choose a time after right now.");
+      }
+    }
+
+    const { data: row, error } = await supabase
+      .from("study_call_reminders")
+      .update({
+        ...updates,
+        ...(updates.scheduled_at ? { next_call_at: updates.scheduled_at } : {}),
+      })
+      .eq("id", id)
+      .eq("user_id", userId)
+      .select()
+      .single();
+    if (error) throw new Error(error.message);
     return row;
   });
 
